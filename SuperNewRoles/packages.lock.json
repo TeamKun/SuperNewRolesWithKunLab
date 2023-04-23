@@ -5,8 +5,8 @@
       "BepInEx.AutoPlugin": {
         "type": "Direct",
         "requested": "[1.0.1, )",
-        "resolved": "1.0.1",
-        "contentHash": "G4YpTHG9rtkDJof+ld7Er4E+sCOlgsjG4bJ1itx1ub7dgff6qqHLy9ksX1ehgO0AdBOPVyVl/GKJg9o7iNl8HA=="
+        "resolved": "1.1.0",
+        "contentHash": "/7Nmc1EA9lYlGBiyz6qPAaHvlcJHEjFZ1RFpGX+8EBj3GrgoX5kbpnZusuSHoOlLx0l+CnzKuQNE54B8UaGPyw=="
       },
       "GitInfo": {
         "type": "Direct",
