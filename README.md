@@ -2,6 +2,7 @@
 ![SNRImage](/images/SNRImage.png)
 
 これは[SuperNewRoles](https://github.com/ykundesu/SuperNewRoles)のフォークです。
+元のリポジトリとは完全に分離して開発を行う都合上、Githubのフォークを使わずにフォークを行いました。
 
 <center>
 This mod is not affiliated with Among Us or Innersloth LLC, and the content contained therein is not endorsed or otherwise sponsored by Innersloth LLC. Portions of the materials contained herein are property of Innersloth LLC. © Innersloth LLC.
