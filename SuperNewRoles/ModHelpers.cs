@@ -334,6 +334,7 @@ public static class ModHelpers
                 }
             }
         }
+        //　labmemo 妖狐がキルされたときにプロテクトをする処理
         if (target.IsRole(RoleId.Safecracker) && !killer.IsRole(RoleId.OverKiller) && Safecracker.CheckTask(target, Safecracker.CheckTasks.KillGuard) && (!Safecracker.KillGuardCount.ContainsKey(target.PlayerId) || Safecracker.KillGuardCount[target.PlayerId] >= 1))
         {
             if (EvilEraser.IsOKAndTryUse(EvilEraser.BlockTypes.SafecrackerGuard, killer))
