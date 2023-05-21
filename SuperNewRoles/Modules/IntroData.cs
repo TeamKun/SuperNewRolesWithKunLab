@@ -219,6 +219,7 @@ public class IntroData
     public static IntroData SpyIntro = new("Spy", RoleClass.Spy.color, 1, RoleId.Spy);
     public static IntroData KunoichiIntro = new("Kunoichi", RoleClass.Kunoichi.color, 1, RoleId.Kunoichi, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData DoubleKillerIntro = new("DoubleKiller", RoleClass.DoubleKiller.color, 1, RoleId.DoubleKiller, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
+    public static IntroData TestRoleIntro = new("TestRole", RoleClass.TestRole.color, 1, RoleId.TestRole, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData SmasherIntro = new("Smasher", RoleClass.Smasher.color, 1, RoleId.Smasher, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData SuicideWisherIntro = new("SuicideWisher", RoleClass.SuicideWisher.color, 1, RoleId.SuicideWisher, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData NeetIntro = new("Neet", RoleClass.Neet.color, 1, RoleId.Neet, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
@@ -255,7 +256,7 @@ public class IntroData
     public static IntroData PavlovsdogsIntro = new("Pavlovsdogs", RoleClass.Pavlovsdogs.color, 1, RoleId.Pavlovsdogs, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
     public static IntroData PavlovsownerIntro = new("Pavlovsowner", RoleClass.Pavlovsowner.color, 1, RoleId.Pavlovsowner, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
     public static IntroData WaveCannonJackalIntro = new("WaveCannonJackal", WaveCannonJackal.color, 1, RoleId.WaveCannonJackal, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
-    public static IntroData SidekickWaveCannonIntro = new("SidekickWaveCannon", WaveCannonJackal.color, 1, RoleId.SidekickWaveCannon, TeamRoleType.Neutral, IntroSound : RoleTypes.Shapeshifter);
+    public static IntroData SidekickWaveCannonIntro = new("SidekickWaveCannon", WaveCannonJackal.color, 1, RoleId.SidekickWaveCannon, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
     public static IntroData ConjurerIntro = new("Conjurer", Conjurer.color, 1, RoleId.Conjurer, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData CamouflagerIntro = new("Camouflager", RoleClass.Camouflager.color, 1, RoleId.Camouflager, TeamRoleType.Impostor, IntroSound: RoleTypes.Impostor);
     public static IntroData CupidIntro = new("Cupid", RoleClass.Cupid.color, 1, RoleId.Cupid, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
@@ -279,5 +280,6 @@ public class IntroData
     public static IntroData TheThirdLittlePig = new("TheThirdLittlePig", TheThreeLittlePigs.color, 1, RoleId.TheThirdLittlePig, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
     public static IntroData OrientalShamanIntro = new("OrientalShaman", OrientalShaman.color, 1, RoleId.OrientalShaman, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
     public static IntroData ShermansServantIntro = new("ShermansServant", OrientalShaman.color, 1, RoleId.ShermansServant, TeamRoleType.Neutral, IntroSound: RoleTypes.Shapeshifter);
+    public static IntroData BalancerIntro = new("Balancer", Balancer.color, 1, RoleId.Balancer, TeamRoleType.Crewmate);
     // イントロオブジェ
 }

@@ -198,11 +198,13 @@ public class CustomOptionHolder
     public static CustomOption NiceGuesserPlayerCount;
     public static CustomOption NiceGuesserShortOneMeetingCount;
     public static CustomOption NiceGuesserShortMaxCount;
+    public static CustomOption NiceGuesserCanShotCrew;
 
     public static CustomRoleOption EvilGuesserOption;
     public static CustomOption EvilGuesserPlayerCount;
     public static CustomOption EvilGuesserShortOneMeetingCount;
     public static CustomOption EvilGuesserShortMaxCount;
+    public static CustomOption EvilGuesserCanShotCrew;
 
     public static CustomRoleOption VultureOption;
     public static CustomOption VulturePlayerCount;
@@ -704,6 +706,7 @@ public class CustomOptionHolder
     public static CustomOption KunoichiHideTime;
     public static CustomOption KunoichiHideKunai;
 
+    //labmemo たぶんこれがロールとかの設定を定義しているところ
     public static CustomRoleOption DoubleKillerOption;
     public static CustomOption DoubleKillerPlayerCount;
     public static CustomOption MainKillCoolTime;
@@ -938,6 +941,10 @@ public class CustomOptionHolder
     public static CustomOption JumboMaxSize;
     public static CustomOption JumboSpeedUpSize;
     public static CustomOption JumboWalkSoundSize;
+
+    public static CustomRoleOption TestRole;
+    public static CustomOption TestRolePlayerCount;
+
     //CustomOption
 
     public static CustomOption DebuggerOption;
@@ -1650,6 +1657,10 @@ public class CustomOptionHolder
         DoubleKillerSabo = Create(651, false, CustomOptionType.Impostor, "DoubleKillerSaboSetting", false, DoubleKillerOption);
         DoubleKillerVent = Create(652, false, CustomOptionType.Impostor, "MinimalistVentSetting", false, DoubleKillerOption);
 
+        //labmemo オプションの中身を設定しているところ
+        TestRole = SetupCustomRoleOption(2001, false, RoleId.TestRole, type: CustomOptionType.Impostor);
+        TestRolePlayerCount = Create(2002, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], TestRole);
+
         SmasherOption = SetupCustomRoleOption(653, false, RoleId.Smasher);
         SmasherPlayerCount = Create(654, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], SmasherOption);
         SmasherKillCoolTime = Create(655, false, CustomOptionType.Impostor, "KillCoolTimeSetting", 30f, 2.5f, 60f, 2.5f, SmasherOption, format: "unitSeconds");
@@ -1870,11 +1881,13 @@ public class CustomOptionHolder
         NiceGuesserPlayerCount = Create(1070, false, CustomOptionType.Crewmate, "SettingPlayerCountName", CrewPlayers[0], CrewPlayers[1], CrewPlayers[2], CrewPlayers[3], NiceGuesserOption);
         NiceGuesserShortMaxCount = Create(977, false, CustomOptionType.Crewmate, "EvilGuesserShortMaxCountSetting", 2f, 1f, 15f, 1f, NiceGuesserOption);
         NiceGuesserShortOneMeetingCount = Create(978, false, CustomOptionType.Crewmate, "EvilGuesserOneMeetingShortSetting", true, NiceGuesserOption);
+        NiceGuesserCanShotCrew = Create(1266, false, CustomOptionType.Crewmate, "EvilGuesserCanCrewShotSetting", true, NiceGuesserOption);
 
         EvilGuesserOption = SetupCustomRoleOption(1071, false, RoleId.EvilGuesser);
         EvilGuesserPlayerCount = Create(974, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], EvilGuesserOption);
         EvilGuesserShortMaxCount = Create(975, false, CustomOptionType.Impostor, "EvilGuesserShortMaxCountSetting", 2f, 1f, 15f, 1f, EvilGuesserOption);
         EvilGuesserShortOneMeetingCount = Create(976, false, CustomOptionType.Impostor, "EvilGuesserOneMeetingShortSetting", true, EvilGuesserOption);
+        EvilGuesserCanShotCrew = Create(1267, false, CustomOptionType.Impostor, "EvilGuesserCanCrewShotSetting", true, EvilGuesserOption);
 
         CupidOption = SetupCustomRoleOption(1079, false, RoleId.Cupid);
         CupidPlayerCount = Create(1080, false, CustomOptionType.Neutral, "SettingPlayerCountName", CrewPlayers[0], CrewPlayers[1], CrewPlayers[2], CrewPlayers[3], CupidOption);
@@ -1908,6 +1921,7 @@ public class CustomOptionHolder
         JumboSpeedUpSize = Create(1141, false, CustomOptionType.Neutral, "JumboSpeedUpSize", 300f, 10f, 600f, 10f, JumboOption);
         JumboWalkSoundSize = Create(1142, false, CustomOptionType.Neutral, "JumboWalkSoundSize", rates, JumboOption);
 
+
         Safecracker.SetupCustomOptions();
 
         FireFox.SetupCustomOptions();
@@ -1925,6 +1939,8 @@ public class CustomOptionHolder
         WiseMan.SetupCustomOptions();
 
         RoleBaseHelper.SetUpOptions();
+
+        Balancer.SetupCustomOptions();
 
         // 表示設定
 
