@@ -1202,6 +1202,7 @@ EvilJumboTitle1,Let's overwhelm the crew with the size of this thing.,この大�
 JumboCrewmateChance,Probability of being a NiceJumbo,ナイスジャンボになる確率,巨无霸生成为船员阵营的概率,超大巨生成為船員陣營的概率
 JumboMaxSize,Maximum size,最大サイズ,巨无霸最大体型,超大巨最大體型
 JumboSpeedUpSize,Growth speed,成長スピード,巨无霸变大速度,超大巨變大速度
+TestRoleName,TestRole,テスト役職,测试职业,測試職業
 JumboWalkSoundSize,Loudness of footsteps,足音の大きさ,巨无霸脚步声音量,超大巨腳步聲音量
 DebuggerName,Debugger,デバッガー,调试员,除錯員
 DebuggerButtonName,Debug,デバッグ,调试,除錯

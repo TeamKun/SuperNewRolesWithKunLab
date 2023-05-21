@@ -25,6 +25,7 @@ using static SuperNewRoles.Patches.FinalStatusPatch;
 
 namespace SuperNewRoles.Modules;
 
+//labmemo ロールの定義
 public enum RoleId
 {
     DefaultRole,
@@ -195,6 +196,7 @@ public enum RoleId
     OrientalShaman,
     ShermansServant,
     SidekickWaveCannon,
+    TestRole,
     //RoleId
 }
 

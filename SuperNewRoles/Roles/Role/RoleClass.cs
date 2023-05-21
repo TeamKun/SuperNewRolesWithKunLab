@@ -233,6 +233,7 @@ public static class RoleClass
         EvilMechanic.ClearAndReload();
         TheThreeLittlePigs.ClearAndReload();
         OrientalShaman.ClearAndReload();
+        TestRole.ClearAndReload();
         // ロールクリア
         Quarreled.ClearAndReload();
         Lovers.ClearAndReload();
@@ -2270,6 +2271,15 @@ public static class RoleClass
         public static void ClearAndReload()
         {
             DoubleKillerPlayer = new();
+        }
+    }
+    public static class TestRole
+    {
+        public static List<PlayerControl> TestRolePlayer;
+        public static Color32 color = ImpostorRed;
+        public static void ClearAndReload()
+        {
+            TestRolePlayer = new();
         }
     }
     public static class Smasher

@@ -704,6 +704,7 @@ public class CustomOptionHolder
     public static CustomOption KunoichiHideTime;
     public static CustomOption KunoichiHideKunai;
 
+    //labmemo たぶんこれがロールとかの設定を定義しているところ
     public static CustomRoleOption DoubleKillerOption;
     public static CustomOption DoubleKillerPlayerCount;
     public static CustomOption MainKillCoolTime;
@@ -938,6 +939,10 @@ public class CustomOptionHolder
     public static CustomOption JumboMaxSize;
     public static CustomOption JumboSpeedUpSize;
     public static CustomOption JumboWalkSoundSize;
+
+    public static CustomRoleOption TestRole;
+    public static CustomOption TestRolePlayerCount;
+
     //CustomOption
 
     public static CustomOption DebuggerOption;
@@ -1650,6 +1655,10 @@ public class CustomOptionHolder
         DoubleKillerSabo = Create(651, false, CustomOptionType.Impostor, "DoubleKillerSaboSetting", false, DoubleKillerOption);
         DoubleKillerVent = Create(652, false, CustomOptionType.Impostor, "MinimalistVentSetting", false, DoubleKillerOption);
 
+        //labmemo オプションの中身を設定しているところ
+        TestRole = SetupCustomRoleOption(2001, false, RoleId.TestRole, type: CustomOptionType.Impostor);
+        TestRolePlayerCount = Create(2002, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], TestRole);
+
         SmasherOption = SetupCustomRoleOption(653, false, RoleId.Smasher);
         SmasherPlayerCount = Create(654, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], SmasherOption);
         SmasherKillCoolTime = Create(655, false, CustomOptionType.Impostor, "KillCoolTimeSetting", 30f, 2.5f, 60f, 2.5f, SmasherOption, format: "unitSeconds");
@@ -1907,6 +1916,7 @@ public class CustomOptionHolder
         JumboMaxSize = Create(1140, false, CustomOptionType.Neutral, "JumboMaxSize", 24f, 1f, 48f, 1f, JumboOption);
         JumboSpeedUpSize = Create(1141, false, CustomOptionType.Neutral, "JumboSpeedUpSize", 300f, 10f, 600f, 10f, JumboOption);
         JumboWalkSoundSize = Create(1142, false, CustomOptionType.Neutral, "JumboWalkSoundSize", rates, JumboOption);
+
 
         Safecracker.SetupCustomOptions();
 
