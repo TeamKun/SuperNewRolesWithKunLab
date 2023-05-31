@@ -1370,6 +1370,7 @@ public static class CheckGameEndPatch
         }
         else
         {
+            return false;
             if (CheckAndEndGameForLoversBreakerWin(__instance, statistics)) return false;
             if (CheckAndEndGameForCrewmateWin(__instance, statistics)) return false;
             if (CheckAndEndGameForSabotageWin(__instance)) return false;

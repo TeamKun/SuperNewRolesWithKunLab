@@ -1,7 +1,9 @@
 using AmongUs.GameOptions;
 using HarmonyLib;
 using Hazel;
+using Il2CppSystem;
 using SuperNewRoles.Helpers;
+using SuperNewRoles.KunLab;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Roles;
@@ -40,7 +42,7 @@ class ControllerManagerUpdatePatch
 {
     static readonly (int, int)[] resolutions = { (480, 270), (640, 360), (800, 450), (1280, 720), (1600, 900), (1920, 1080) };
     static int resolutionIndex = 0;
-    public static void Postfix()
+    public static void Postfix(PlayerPhysics __instance)
     {
         //解像度変更
         if (Input.GetKeyDown(KeyCode.F9))
@@ -50,8 +52,8 @@ class ControllerManagerUpdatePatch
             ResolutionManager.SetResolution(resolutions[resolutionIndex].Item1, resolutions[resolutionIndex].Item2, false);
         }
 
-        // その時点までのlogを切り出す
-        if (ModHelpers.GetManyKeyDown(new[] { KeyCode.S, KeyCode.LeftShift, KeyCode.RightShift }))
+        //labmemo その時点までのlogを切り出す
+        if (Input.GetKey(KeyCode.RightShift) && Input.GetKeyDown(KeyCode.O))
         {
             string via = "KeyCommandVia";
             Logger.SaveLog(via, via);

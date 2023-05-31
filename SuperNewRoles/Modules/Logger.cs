@@ -113,6 +113,8 @@ class Logger
         string sourceLogFile = Path.GetDirectoryName(UnityEngine.Application.dataPath) + @"\BepInEx\LogOutput.log";
         FileInfo sourceLogPath = new(@sourceLogFile);
         sourceLogPath.CopyTo(@filePath, true);
+
+        Process.Start(filePath);
     }
 
     /// <summary>
