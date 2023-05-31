@@ -7,6 +7,7 @@ using HarmonyLib;
 using Hazel;
 using SuperNewRoles.CustomObject;
 using SuperNewRoles.Helpers;
+using SuperNewRoles.KunLab;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Patches;
@@ -69,6 +70,7 @@ static class HudManagerStartPatch
     public static CustomButton SecretlyKillerSecretlyKillButton;
     public static CustomButton DoubleKillerMainKillButton;
     public static CustomButton DoubleKillerSubKillButton;
+    public static CustomButton TestRoleButton;
     public static CustomButton SuicideWisherSuicideButton;
     public static CustomButton FastMakerButton;
     public static CustomButton ToiletFanButton;
@@ -2611,6 +2613,37 @@ static class HudManagerStartPatch
         )
         {
             buttonText = FastDestroyableSingleton<HudManager>.Instance.KillButton.buttonLabelText.text,
+            showButtonText = true
+        };
+        TestRoleButton = new(
+            () =>
+            {
+                //labmemo クリックされたら実行される処理
+                ChatLogger.SendChat("TestRoleButton");
+                SuperNewRolesPlugin.Logger.LogError("TestRoleButton");
+            },
+            //labmemo このボタンを表示するか
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.TestRole) && ModeHandler.IsMode(ModeId.Default)); },
+            () =>
+            {
+                //labmemo このボタンが使えるかどうかを表す
+                return PlayerControl.LocalPlayer.CanMove;
+            },
+            () =>
+            {
+                //labmemo 会議が終わった後にする処理
+            },
+            //labmemo ボタンの画像
+            __instance.KillButton.graphic.sprite,
+            new Vector3(-2f, 1, 0),
+            __instance,
+            __instance.KillButton,
+            KeyCode.F,
+            49,
+            () => { return false; }
+        )
+        {
+            buttonText = "TestRoleButton",
             showButtonText = true
         };
         SuicideWisherSuicideButton = new(
