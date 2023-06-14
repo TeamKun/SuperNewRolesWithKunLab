@@ -5,6 +5,7 @@
         <Description>SuperNewRoles</Description>
         <Authors>ykundesu</Authors>
         <AmongUs Condition=" '$(AmongUs)' == '' ">C:\Program Files (x86)\Steam\steamapps\common\Among Us SNR dev</AmongUs>
+        <AmongUs2 Condition=" '$(AmongUs2)' == '' ">C:\Program Files (x86)\Steam\steamapps\common\Among Us SNR dev2</AmongUs2>
         <langVersion>preview</langVersion>
     </PropertyGroup>
 
@@ -29,6 +30,7 @@
     <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
         <Message Text="Second occurrence" />
         <Copy SourceFiles="$(ProjectDir)bin\$(Configuration)\netstandard2.1\SuperNewRoles.dll" DestinationFolder="$(AmongUs)/BepInEx/plugins/" />
+        <Copy SourceFiles="$(ProjectDir)bin\$(Configuration)\netstandard2.1\SuperNewRoles.dll" DestinationFolder="$(AmongUs2)/BepInEx/plugins/" />
     </Target>
 
     <ItemGroup>

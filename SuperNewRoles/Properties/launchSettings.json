@@ -4,6 +4,10 @@
       "commandName": "Executable",
       "executablePath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Among Us SNR dev\\Among Us.exe"
     },
+    "SuperNewRoles2": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Among Us SNR dev2\\Among Us.exe"
+    },
     "ビルドのみ": {
       "commandName": "Project"
     }
