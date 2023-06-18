@@ -12,6 +12,7 @@ using Sentry;
 using SuperNewRoles.Buttons;
 using SuperNewRoles.CustomObject;
 using SuperNewRoles.Helpers;
+using SuperNewRoles.KunLab;
 using SuperNewRoles.MapOption;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
@@ -201,6 +202,7 @@ public enum RoleId
     //RoleId
 }
 
+//labmemo mod側のRPCのID設定
 public enum CustomRPC
 {
     ShareOptions = 145,
@@ -299,7 +301,10 @@ public enum CustomRPC
     CreateShermansServant,
     SetVisible,
     PenguinMeetingEnd,
-    BalancerBalance,
+    BalancerBalance = 250,
+
+    陰キャ転生_つかまれる,
+    陰キャ転生_おろされる,
 }
 
 public static class RPCProcedure
@@ -1876,6 +1881,19 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.BalancerBalance:
                         BalancerBalance(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+                        break;
+
+                    case CustomRPC.陰キャ転生_つかまれる:
+                        InkyaTenseiManager.つかまれる(reader.ReadByte());
+                        break;
+
+                    case CustomRPC.陰キャ転生_おろされる:
+                        InkyaTenseiManager.おろされる();
+                        break;
+
+                    default:
+                        //実装がありません
+                        ChatLogger.SendChat($"このRPCの実装がありません。{((CustomRPC)callId).ToString()}");
                         break;
                 }
             }
