@@ -2,13 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using AmongUs.Data;
 using AmongUs.GameOptions;
-using BepInEx.IL2CPP.Utils;
+using BepInEx.Unity.IL2CPP.Utils.Collections;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
-using Sentry;
 using SuperNewRoles.Buttons;
 using SuperNewRoles.CustomObject;
 using SuperNewRoles.Helpers;
@@ -199,6 +197,7 @@ public enum RoleId
     SidekickWaveCannon,
     TestRole,
     Balancer,
+    Pteranodon,
     //RoleId
 }
 
@@ -301,7 +300,8 @@ public enum CustomRPC
     CreateShermansServant,
     SetVisible,
     PenguinMeetingEnd,
-    BalancerBalance = 250,
+    BalancerBalance,
+    PteranodonSetStatus,
 
     陰キャ転生_つかまれる,
     陰キャ転生_おろされる,
@@ -309,6 +309,17 @@ public enum CustomRPC
 
 public static class RPCProcedure
 {
+    public static void PteranodonSetStatus(byte playerId, bool Status, bool IsRight, float tarpos, byte[] buff)
+    {
+        PlayerControl player = ModHelpers.PlayerById(playerId);
+        if (player == null)
+            return;
+        Vector3 position = Vector3.zero;
+        position.x = BitConverter.ToSingle(buff, 0 * sizeof(float));
+        position.y = BitConverter.ToSingle(buff, 1 * sizeof(float));
+        position.z = BitConverter.ToSingle(buff, 2 * sizeof(float));
+        Pteranodon.SetStatus(player, Status, IsRight, tarpos, position);
+    }
     public static void BalancerBalance(byte sourceId, byte player1Id, byte player2Id)
     {
         PlayerControl source = ModHelpers.PlayerById(sourceId);
@@ -632,6 +643,8 @@ public static class RPCProcedure
         PlayerControl dyingTarget = ModHelpers.PlayerById(dyingTargetId);
         if (dyingTarget == null) return;
         dyingTarget.Exiled();
+        if (killerId == dyingTargetId) FinalStatusData.FinalStatuses[dyingTargetId] = FinalStatus.GuesserMisFire;
+        else FinalStatusData.FinalStatuses[dyingTargetId] = FinalStatus.GuesserKill;
         if (Constants.ShouldPlaySfx()) SoundManager.Instance.PlaySound(dyingTarget.KillSfx, false, 0.8f);
         if (MeetingHud.Instance)
         {
@@ -778,7 +791,7 @@ public static class RPCProcedure
             else
             {
                 airshipStatus.GapPlatform.StopAllCoroutines();
-                airshipStatus.GapPlatform.StartCoroutine(Roles.Impostor.Nun.NotMoveUsePlatform(airshipStatus.GapPlatform));
+                airshipStatus.GapPlatform.StartCoroutine(Roles.Impostor.Nun.NotMoveUsePlatform(airshipStatus.GapPlatform).WrapToIl2Cpp());
             }
         }
     }
@@ -1881,6 +1894,9 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.BalancerBalance:
                         BalancerBalance(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.PteranodonSetStatus:
+                        PteranodonSetStatus(reader.ReadByte(), reader.ReadBoolean(), reader.ReadBoolean(), reader.ReadSingle(), reader.ReadBytes(reader.ReadInt32()));
                         break;
 
                     case CustomRPC.陰キャ転生_つかまれる:

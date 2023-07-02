@@ -1077,6 +1077,7 @@ class AllRoleSetClass
             RoleId.OrientalShaman => OrientalShaman.OrientalShamanPlayerCount.GetFloat(),
             RoleId.TestRole => CustomOptionHolder.TestRolePlayerCount.GetFloat(),
             RoleId.Balancer => Balancer.BalancerPlayerCount.GetFloat(),
+            RoleId.Pteranodon => Pteranodon.PteranodonPlayerCount.GetFloat(),
             // プレイヤーカウント
             _ => 1,
         };

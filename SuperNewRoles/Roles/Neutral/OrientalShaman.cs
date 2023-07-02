@@ -12,7 +12,7 @@ namespace SuperNewRoles.Roles.Neutral;
 
 public static class OrientalShaman
 {
-    private const int OptionId = 1220;
+    private const int OptionId = 301300;
     public static CustomRoleOption OrientalShamanOption;
     public static CustomOption OrientalShamanPlayerCount;
     public static CustomOption OrientalShamanImpostorVision;
@@ -65,8 +65,10 @@ public static class OrientalShaman
         DeadPlayerArrows = new();
         SeePositionArrow = null;
         IsDoNotDisplay = false;
-        ShermansServantTransformationButton.Timer = ShermansServantTransformationCoolTime.GetFloat();
-        ShermansServantSuicideButton.Timer = ShermansServantSuicideCoolTime.GetFloat();
+        if (ShermansServantTransformationButton != null)
+            ShermansServantTransformationButton.Timer = ShermansServantTransformationCoolTime.GetFloat();
+        if (ShermansServantSuicideButton != null)
+            ShermansServantSuicideButton.Timer = ShermansServantSuicideCoolTime.GetFloat();
     }
 
     public static CustomButton OrientalShamanShermansServantButtoon;
