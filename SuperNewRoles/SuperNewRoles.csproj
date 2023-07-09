@@ -26,7 +26,6 @@
         <Reference Include="$(AmongUs)/BepInEx/interop/*.dll" />
         <None Remove="CustomCosmetics\CustomCosmeticsData\CustomHatData.cs~RFbacc703.TMP" />
         <Reference Include="$(AmongUs)/BepInEx/plugins/Agartha.dll" />
-        <Reference Include="$(AmongUs)/BepInEx/plugins/SuperNewRoles.dll" />
     </ItemGroup>
 
     <Target Name="CopyCustomContent" AfterTargets="AfterBuild">

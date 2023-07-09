@@ -720,7 +720,7 @@ public static class RoleHelpers
             case RoleId.DoubleKiller:
                 RoleClass.DoubleKiller.DoubleKillerPlayer.Add(player);
                 break;
-            case RoleId.TestRole:
+            case RoleId.InkyaRorle:
                 RoleClass.TestRole.TestRolePlayer.Add(player);
                 break;
             case RoleId.Smasher:
@@ -1257,7 +1257,7 @@ public static class RoleHelpers
             case RoleId.DoubleKiller:
                 RoleClass.DoubleKiller.DoubleKillerPlayer.RemoveAll(ClearRemove);
                 break;
-            case RoleId.TestRole:
+            case RoleId.InkyaRorle:
                 RoleClass.TestRole.TestRolePlayer.RemoveAll(ClearRemove);
                 break;
             case RoleId.Smasher:
@@ -1838,7 +1838,7 @@ public static class RoleHelpers
             else if (RoleClass.Spy.SpyPlayer.IsCheckListPlayerControl(player)) return RoleId.Spy;
             else if (RoleClass.Kunoichi.KunoichiPlayer.IsCheckListPlayerControl(player)) return RoleId.Kunoichi;
             else if (RoleClass.DoubleKiller.DoubleKillerPlayer.IsCheckListPlayerControl(player)) return RoleId.DoubleKiller;
-            else if (RoleClass.TestRole.TestRolePlayer.IsCheckListPlayerControl(player)) return RoleId.TestRole;
+            else if (RoleClass.TestRole.TestRolePlayer.IsCheckListPlayerControl(player)) return RoleId.InkyaRorle;
             else if (RoleClass.Smasher.SmasherPlayer.IsCheckListPlayerControl(player)) return RoleId.Smasher;
             else if (RoleClass.SuicideWisher.SuicideWisherPlayer.IsCheckListPlayerControl(player)) return RoleId.SuicideWisher;
             else if (RoleClass.Neet.NeetPlayer.IsCheckListPlayerControl(player)) return RoleId.Neet;

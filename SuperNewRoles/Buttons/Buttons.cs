@@ -74,6 +74,7 @@ static class HudManagerStartPatch
     public static CustomButton DoubleKillerSubKillButton;
     public static CustomButton つかむButton;
     public static CustomButton おろすButton;
+    public static CustomButton 投げるButton;
     public static CustomButton SuicideWisherSuicideButton;
     public static CustomButton FastMakerButton;
     public static CustomButton ToiletFanButton;
@@ -2697,16 +2698,21 @@ static class HudManagerStartPatch
             () =>
             {
                 //labmemo クリックされたら実行される処理
+
+                var targetPlayers = InkyaUtil.近くにいるプレイヤー(PlayerControl.LocalPlayer);
+
                 var writer = RPCHelper.StartRPC(CustomRPC.陰キャ転生_つかまれる);
                 writer.Write(PlayerControl.LocalPlayer.PlayerId);
+                writer.Write((byte)targetPlayers.Count);
+                writer.Write(targetPlayers.ToArray());
                 writer.EndRPC();
             },
             //labmemo このボタンを表示するか
-            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.TestRole) && ModeHandler.IsMode(ModeId.Default)); },
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
             () =>
             {
                 //labmemo このボタンが使えるかどうかを表す
-                return true;
+                return InkyaUtil.近くにプレイヤーがいる(PlayerControl.LocalPlayer);
             },
             () =>
             {
@@ -2722,7 +2728,7 @@ static class HudManagerStartPatch
             () => { return false; }
         )
         {
-            buttonText = "TestRoleButton",
+            buttonText = "つかむ",
             showButtonText = true
         };
         おろすButton = new(
@@ -2733,7 +2739,7 @@ static class HudManagerStartPatch
                 writer.EndRPC();
             },
             //labmemo このボタンを表示するか
-            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.TestRole) && ModeHandler.IsMode(ModeId.Default)); },
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
             () =>
             {
                 //labmemo このボタンが使えるかどうかを表す
@@ -2745,7 +2751,7 @@ static class HudManagerStartPatch
             },
             //labmemo ボタンの画像
             __instance.KillButton.graphic.sprite,
-            new Vector3(-3f, 1, 0),
+            new Vector3(-2f, 2, 0),
             __instance,
             __instance.KillButton,
             KeyCode.F,
@@ -2753,7 +2759,38 @@ static class HudManagerStartPatch
             () => { return false; }
         )
         {
-            buttonText = "TestRoleButton",
+            buttonText = "おろす",
+            showButtonText = true
+        };
+        投げるButton = new(
+            () =>
+            {
+                //labmemo クリックされたら実行される処理
+                var writer = RPCHelper.StartRPC(CustomRPC.陰キャ転生_投げる);
+                writer.EndRPC();
+            },
+            //labmemo このボタンを表示するか
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
+            () =>
+            {
+                //labmemo このボタンが使えるかどうかを表す
+                return true;
+            },
+            () =>
+            {
+                //labmemo 会議が終わった後にする処理
+            },
+            //labmemo ボタンの画像
+            __instance.KillButton.graphic.sprite,
+            new Vector3(-2f, 3, 0),
+            __instance,
+            __instance.KillButton,
+            KeyCode.F,
+            49,
+            () => { return false; }
+        )
+        {
+            buttonText = "投げる",
             showButtonText = true
         };
         SuicideWisherSuicideButton = new(

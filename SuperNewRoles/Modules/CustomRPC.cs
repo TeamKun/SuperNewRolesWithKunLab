@@ -195,7 +195,7 @@ public enum RoleId
     OrientalShaman,
     ShermansServant,
     SidekickWaveCannon,
-    TestRole,
+    InkyaRorle,
     Balancer,
     Pteranodon,
     //RoleId
@@ -300,11 +300,13 @@ public enum CustomRPC
     CreateShermansServant,
     SetVisible,
     PenguinMeetingEnd,
-    BalancerBalance,
+    BalancerBalance = 250,
     PteranodonSetStatus,
 
     陰キャ転生_つかまれる,
     陰キャ転生_おろされる,
+    陰キャ転生_投げる,
+    陰キャ転生_SetPosition,
 }
 
 public static class RPCProcedure
@@ -1901,11 +1903,28 @@ public static class RPCProcedure
                         break;
 
                     case CustomRPC.陰キャ転生_つかまれる:
-                        InkyaTenseiManager.つかまれる(reader.ReadByte());
+                        var inkyaPlayerId = reader.ReadByte();
+                        var targetPlayerCount = reader.ReadByte();
+                        var targetPlayerIds = reader.ReadBytes(targetPlayerCount);
+                        InkyaTenseiManager.つかまれる(inkyaPlayerId,targetPlayerIds);
                         break;
 
                     case CustomRPC.陰キャ転生_おろされる:
                         InkyaTenseiManager.おろされる();
+                        break;
+
+
+                    case CustomRPC.陰キャ転生_投げる:
+                        InkyaTenseiManager.投げる();
+                        break;
+
+
+                    case CustomRPC.陰キャ転生_SetPosition:
+                        var inkyaSetPosTarget = reader.ReadByte();
+                        var inkyaSetPosVec3x = reader.ReadSingle();
+                        var inkyaSetPosVec3y = reader.ReadSingle();
+                        var inkyaSetPosVec3z = reader.ReadSingle();
+                        InkyaTenseiManager.SetPlayerPosition(inkyaSetPosTarget,new Vector3(inkyaSetPosVec3x,inkyaSetPosVec3y,inkyaSetPosVec3z));
                         break;
 
                     default:

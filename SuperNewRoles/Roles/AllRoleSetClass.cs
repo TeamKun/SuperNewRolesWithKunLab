@@ -1075,7 +1075,7 @@ class AllRoleSetClass
             RoleId.TheSecondLittlePig => TheThreeLittlePigs.TheThreeLittlePigsTeamCount.GetFloat(),
             RoleId.TheThirdLittlePig => TheThreeLittlePigs.TheThreeLittlePigsTeamCount.GetFloat(),
             RoleId.OrientalShaman => OrientalShaman.OrientalShamanPlayerCount.GetFloat(),
-            RoleId.TestRole => CustomOptionHolder.TestRolePlayerCount.GetFloat(),
+            RoleId.InkyaRorle => CustomOptionHolder.TestRolePlayerCount.GetFloat(),
             RoleId.Balancer => Balancer.BalancerPlayerCount.GetFloat(),
             RoleId.Pteranodon => Pteranodon.PteranodonPlayerCount.GetFloat(),
             // プレイヤーカウント

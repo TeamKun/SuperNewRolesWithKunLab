@@ -1,4 +1,8 @@
-﻿using HarmonyLib;
+﻿using System;
+using HarmonyLib;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using SuperNewRoles.Helpers;
+using SuperNewRoles.Patches;
 using UnityEngine;
 
 namespace SuperNewRoles.KunLab;
@@ -8,25 +12,30 @@ public class InkyaTenseiManager
 {
     public static readonly Sprite GetButtonSprite = ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.ArsonistDouse.png", 115f);
 
-    private static GameObject Test2;
+    private static GameObject InkyaTenseiImage;
 
-    private static PlayerControl targetPlayerControl;
+    private static PlayerControl inkyaPlayer;
+
+
+    private static bool 投げられる = false;
+    private const float 投げられる時間 = 0.5f;
+    private static DateTime 投げられた開始時間;
 
     public static void Postfix(PlayerControl __instance)
     {
-        if (__instance.GetRole() == RoleId.TestRole)
+        if (__instance.GetRole() == RoleId.InkyaRorle)
         {
             __instance.gameObject.transform.Find("Cosmetics").gameObject.SetActive(false);
             __instance.gameObject.transform.Find("BodyForms").transform.Find("Normal").transform.localScale = new Vector3(0,0,0);
 
 
-            if (Test2 == null)
+            if (InkyaTenseiImage == null)
             {
-                Test2 = new GameObject();
+                InkyaTenseiImage = new GameObject();
 
-                Test2.transform.parent = __instance.gameObject.transform.Find("BodyForms");
-                Test2.transform.localPosition = new Vector3(0, 0, 0);
-                var testSpriteRenderer = Test2.AddComponent<SpriteRenderer>();
+                InkyaTenseiImage.transform.parent = __instance.gameObject.transform.Find("BodyForms");
+                InkyaTenseiImage.transform.localPosition = new Vector3(0, 0, 0);
+                var testSpriteRenderer = InkyaTenseiImage.AddComponent<SpriteRenderer>();
                 testSpriteRenderer.sprite = ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.ArsonistDouse.png", 150f);
                 testSpriteRenderer.sortingOrder = 1;
             }
@@ -34,27 +43,98 @@ public class InkyaTenseiManager
         }
 
 
-        if (targetPlayerControl != null)
+        if (inkyaPlayer != null)
         {
-            PlayerControl.LocalPlayer.gameObject.transform.position = targetPlayerControl.gameObject.transform.position + new Vector3(1.5f,0,0);
+            var localPlayerPos = PlayerControl.LocalPlayer.gameObject.transform.position;
+            if (投げられる)
+            {
+                localPlayerPos += new Vector3(0.15f, 0.15f, 0.15f);
+                if (DateTime.Now - 投げられた開始時間 > TimeSpan.FromSeconds(投げられる時間))
+                {
+                    投げられる = false;
+                    ModHelpers.CheckMurderAttemptAndKill(inkyaPlayer, PlayerControl.LocalPlayer);
+                }
+            }
+            else
+            {
+                localPlayerPos = inkyaPlayer.gameObject.transform.position + new Vector3(1.5f,0,0);
+            }
+            PlayerControl.LocalPlayer.gameObject.transform.position = localPlayerPos;
+
+            var writer = RPCHelper.StartRPC(CustomRPC.陰キャ転生_SetPosition);
+            writer.Write(PlayerControl.LocalPlayer.PlayerId);
+            writer.Write(localPlayerPos.x);
+            writer.Write(localPlayerPos.y);
+            writer.Write(localPlayerPos.z);
+            writer.EndRPC();
+
+            if (__instance.IsDead())
+            {
+                inkyaPlayer = null;
+            }
         }
     }
 
 
-    public static void つかまれる(byte targetPlayer)
+    public static void つかまれる(byte inkyaPlayerId,  Il2CppStructArray<byte> targetPlayerIds)
     {
+        var isTarget = false;
+        //ターゲットかどうかをチェック
+        foreach (var targetPlayerId in targetPlayerIds)
+        {
+            if (targetPlayerId == PlayerControl.LocalPlayer.PlayerId)
+            {
+                isTarget = true;
+                continue;
+            }
+        }
+        if (!isTarget)
+        {
+            return;
+        }
+
+        //ターゲットならつかまれる
         foreach (PlayerControl player in PlayerControl.AllPlayerControls)
         {
-            if (player.PlayerId == targetPlayer)
+            if (player.PlayerId == inkyaPlayerId)
             {
-                targetPlayerControl = player;
+                inkyaPlayer = player;
             }
         }
     }
 
     public static void おろされる()
     {
-        targetPlayerControl = null;
+        inkyaPlayer = null;
     }
+
+
+    public static void 投げる()
+    {
+        if (inkyaPlayer != null)
+        {
+            投げられる = true;
+            投げられた開始時間 = DateTime.Now;
+        }
+    }
+
+
+
+    public static void SetPlayerPosition(byte playerId, Vector3 position)
+    {
+        if (PlayerControl.LocalPlayer.PlayerId == playerId)
+        {
+            return;
+        }
+        foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+        {
+            if (player.PlayerId == playerId)
+            {
+                player.transform.position = position;
+                return;
+            }
+        }
+    }
+
 
 }

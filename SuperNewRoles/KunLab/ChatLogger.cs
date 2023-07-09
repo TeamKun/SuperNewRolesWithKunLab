@@ -12,8 +12,8 @@ namespace SuperNewRoles.KunLab;
 [HarmonyPatch(typeof(ControllerManager), nameof(ControllerManager.Update))]
 class ChatLogger
 {
-
     private static readonly List<string> sendChatLog = new List<string>();
+    private static bool isLoadedInspector = false;
 
     public static void SendChat(string text)
     {
