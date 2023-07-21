@@ -23,7 +23,7 @@ public class InkyaTenseiManager
 
     public static void Postfix(PlayerControl __instance)
     {
-        if (__instance.GetRole() == RoleId.InkyaRorle)
+        if (__instance.GetRole() == RoleId.Inkya)
         {
             __instance.gameObject.transform.Find("Cosmetics").gameObject.SetActive(false);
             __instance.gameObject.transform.Find("BodyForms").transform.Find("Normal").transform.localScale = new Vector3(0,0,0);

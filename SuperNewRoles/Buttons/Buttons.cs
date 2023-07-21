@@ -2708,7 +2708,7 @@ static class HudManagerStartPatch
                 writer.EndRPC();
             },
             //labmemo このボタンを表示するか
-            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.Inkya) && ModeHandler.IsMode(ModeId.Default)); },
             () =>
             {
                 //labmemo このボタンが使えるかどうかを表す
@@ -2739,7 +2739,7 @@ static class HudManagerStartPatch
                 writer.EndRPC();
             },
             //labmemo このボタンを表示するか
-            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.Inkya) && ModeHandler.IsMode(ModeId.Default)); },
             () =>
             {
                 //labmemo このボタンが使えるかどうかを表す
@@ -2770,7 +2770,7 @@ static class HudManagerStartPatch
                 writer.EndRPC();
             },
             //labmemo このボタンを表示するか
-            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.InkyaRorle) && ModeHandler.IsMode(ModeId.Default)); },
+            (bool isAlive, RoleId role) => { return (isAlive && (role == RoleId.Inkya) && ModeHandler.IsMode(ModeId.Default)); },
             () =>
             {
                 //labmemo このボタンが使えるかどうかを表す

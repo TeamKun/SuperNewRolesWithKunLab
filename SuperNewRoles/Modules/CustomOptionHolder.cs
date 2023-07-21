@@ -1568,6 +1568,11 @@ public class CustomOptionHolder
 
         /* |: ========================= Crewmate Settings ========================== :| */
 
+
+        //labmemo オプションの中身を設定しているところ
+        TestRole = SetupCustomRoleOption(2001, true, RoleId.Inkya, type: CustomOptionType.Crewmate);
+        TestRolePlayerCount = Create(2002, true, CustomOptionType.Crewmate, "SettingPlayerCountName", 1,1,1,1, TestRole);
+
         SheriffOption = SetupCustomRoleOption(400000, true, RoleId.Sheriff);
         SheriffPlayerCount = Create(400001, true, CustomOptionType.Crewmate, "SettingPlayerCountName", CrewPlayers[0], CrewPlayers[1], CrewPlayers[2], CrewPlayers[3], SheriffOption);
         SheriffCoolTime = Create(400002, true, CustomOptionType.Crewmate, "SheriffCooldownSetting", 30f, 2.5f, 60f, 2.5f, SheriffOption, format: "unitSeconds");
@@ -1761,9 +1766,6 @@ public class CustomOptionHolder
         MayorFriendsCheckJackalTask = Create(402208, true, CustomOptionType.Crewmate, "MadmateCheckImpostorTaskSetting", rates4, MayorFriendsIsCheckJackal);
         MayorFriendsVoteCount = Create(402209, true, CustomOptionType.Crewmate, "MayorVoteCountSetting", 2f, 1f, 100f, 1f, MayorFriendsOption);
 
-        //labmemo オプションの中身を設定しているところ
-        TestRole = SetupCustomRoleOption(2001, false, RoleId.TestRole, type: CustomOptionType.Impostor);
-        TestRolePlayerCount = Create(2002, false, CustomOptionType.Impostor, "SettingPlayerCountName", ImpostorPlayers[0], ImpostorPlayers[1], ImpostorPlayers[2], ImpostorPlayers[3], TestRole);
 
         LighterOption = SetupCustomRoleOption(402301, false, RoleId.Lighter);
         LighterPlayerCount = Create(402302, false, CustomOptionType.Crewmate, "SettingPlayerCountName", CrewPlayers[0], CrewPlayers[1], CrewPlayers[2], CrewPlayers[3], LighterOption);

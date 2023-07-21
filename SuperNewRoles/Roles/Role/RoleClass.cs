@@ -2280,7 +2280,7 @@ public static class RoleClass
     public static class TestRole
     {
         public static List<PlayerControl> TestRolePlayer;
-        public static Color32 color = ImpostorRed;
+        public static Color32 color = CrewmateWhite;
         public static void ClearAndReload()
         {
             TestRolePlayer = new();
