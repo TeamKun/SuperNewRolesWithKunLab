@@ -2719,8 +2719,8 @@ static class HudManagerStartPatch
                 //labmemo 会議が終わった後にする処理
             },
             //labmemo ボタンの画像
-            __instance.KillButton.graphic.sprite,
-            new Vector3(-2f, 1, 0),
+            ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.Inkya.tukamu.png", 115f),
+            new Vector3(-2f, 2, 0),
             __instance,
             __instance.KillButton,
             KeyCode.F,
@@ -2750,7 +2750,7 @@ static class HudManagerStartPatch
                 //labmemo 会議が終わった後にする処理
             },
             //labmemo ボタンの画像
-            __instance.KillButton.graphic.sprite,
+            ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.Inkya.hanasu.png", 115f),
             new Vector3(-2f, 2, 0),
             __instance,
             __instance.KillButton,
@@ -2781,7 +2781,7 @@ static class HudManagerStartPatch
                 //labmemo 会議が終わった後にする処理
             },
             //labmemo ボタンの画像
-            __instance.KillButton.graphic.sprite,
+            ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.Inkya.nageru.png", 115f),
             new Vector3(-2f, 3, 0),
             __instance,
             __instance.KillButton,

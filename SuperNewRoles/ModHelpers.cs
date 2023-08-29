@@ -312,6 +312,16 @@ public static class ModHelpers
             writer.EndRPC();
             RPCProcedure.ShielderProtect(target.PlayerId, target.PlayerId, 0);
         }
+
+        if (target.IsRole(RoleId.Inkya))
+        {
+            MessageWriter writer = RPCHelper.StartRPC(CustomRPC.ShielderProtect);
+            writer.Write(target.PlayerId);
+            writer.Write(target.PlayerId);
+            writer.Write(0);
+            writer.EndRPC();
+            RPCProcedure.ShielderProtect(target.PlayerId, target.PlayerId, 0);
+        }
         if (target.IsRole(RoleId.Fox) && !killer.IsRole(RoleId.OverKiller) && (!RoleClass.Fox.KillGuard.ContainsKey(target.PlayerId) || RoleClass.Fox.KillGuard[target.PlayerId] >= 1))
         {
             if (EvilEraser.IsOKAndTryUse(EvilEraser.BlockTypes.FoxGuard, killer))

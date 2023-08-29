@@ -36,8 +36,9 @@ public class InkyaTenseiManager
                 InkyaTenseiImage.transform.parent = __instance.gameObject.transform.Find("BodyForms");
                 InkyaTenseiImage.transform.localPosition = new Vector3(0, 0, 0);
                 var testSpriteRenderer = InkyaTenseiImage.AddComponent<SpriteRenderer>();
-                testSpriteRenderer.sprite = ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.ArsonistDouse.png", 150f);
+                testSpriteRenderer.sprite = ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.Inkya.default.png", 150f);
                 testSpriteRenderer.sortingOrder = 1;
+                testSpriteRenderer.transform.localScale = new Vector3(0.05f,0.05f,0.05f);
             }
 
         }
