@@ -1367,7 +1367,7 @@ public static class CheckGameEndPatch
         }
         else
         {
-            return false;
+            //labmemo ゲームの終了判定、勝利判定をつかさどっている部分
             if (CheckAndEndGameForLoversBreakerWin(__instance, statistics)) return false;
             if (CheckAndEndGameForCrewmateWin(__instance, statistics)) return false;
             if (CheckAndEndGameForSabotageWin(__instance)) return false;
