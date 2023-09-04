@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using HarmonyLib;
+using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using SuperNewRoles.Helpers;
 using SuperNewRoles.Patches;
@@ -44,16 +46,19 @@ public class InkyaTenseiManager
         }
 
 
-        if (inkyaPlayer != null)
+        //これがnullになっていないってことはつかまれている
+        if (inkyaPlayer != null && !PlayerControl.LocalPlayer.IsDead())
         {
             var localPlayerPos = PlayerControl.LocalPlayer.gameObject.transform.position;
             if (投げられる)
             {
-                localPlayerPos += new Vector3(0.15f, 0.15f, 0.15f);
+                localPlayerPos += new Vector3(0.08f, 0.08f, 0.08f);
                 if (DateTime.Now - 投げられた開始時間 > TimeSpan.FromSeconds(投げられる時間))
                 {
                     投げられる = false;
-                    ModHelpers.CheckMurderAttemptAndKill(inkyaPlayer, PlayerControl.LocalPlayer);
+                    PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer);
+                    PlayerControl.LocalPlayer.RpcSetFinalStatus(FinalStatus.SuicideWisherSelfDeath);
+                    inkyaPlayer = null;
                 }
             }
             else
@@ -79,6 +84,10 @@ public class InkyaTenseiManager
 
     public static void つかまれる(byte inkyaPlayerId,  Il2CppStructArray<byte> targetPlayerIds)
     {
+        if (PlayerControl.LocalPlayer.IsDead())
+        {
+            return;
+        }
         var isTarget = false;
         //ターゲットかどうかをチェック
         foreach (var targetPlayerId in targetPlayerIds)
@@ -106,12 +115,20 @@ public class InkyaTenseiManager
 
     public static void おろされる()
     {
+        if (PlayerControl.LocalPlayer.IsDead())
+        {
+            return;
+        }
         inkyaPlayer = null;
     }
 
 
     public static void 投げる()
     {
+        if (PlayerControl.LocalPlayer.IsDead())
+        {
+            return;
+        }
         if (inkyaPlayer != null)
         {
             投げられる = true;

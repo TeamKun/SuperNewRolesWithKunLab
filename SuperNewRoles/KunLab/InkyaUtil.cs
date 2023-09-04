@@ -11,7 +11,7 @@ public class InkyaUtil
     {
         foreach (PlayerControl player in PlayerControl.AllPlayerControls)
         {
-            if (player.PlayerId == control.PlayerId)
+            if (player.PlayerId == control.PlayerId || player.Data.IsDead)
             {
                 continue;
             }
@@ -29,7 +29,7 @@ public class InkyaUtil
         List<byte> result = new List<byte>();
         foreach (PlayerControl player in PlayerControl.AllPlayerControls)
         {
-            if (player.PlayerId == control.PlayerId)
+            if (player.PlayerId == control.PlayerId || player.Data.IsDead)
             {
                 continue;
             }
