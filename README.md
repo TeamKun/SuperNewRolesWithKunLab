@@ -8,7 +8,8 @@
 
 # 開発者向けドキュメント
 
-## [環境構築方法](https://github.com/TeamKun/SuperNewRolesWithKunLab/blob/master/docs/%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89.md)
+- [環境構築方法](https://github.com/TeamKun/SuperNewRolesWithKunLab/blob/master/docs/%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89.md)
+- [ビルドの仕方とzipの作り方](https://github.com/TeamKun/SuperNewRolesWithKunLab/blob/master/docs/%E3%83%93%E3%83%AB%E3%83%89%E3%81%AE%E4%BB%95%E6%96%B9%E3%81%A8zip%E3%81%AE%E4%BD%9C%E3%82%8A%E6%96%B9.md)
 
 これは[SuperNewRoles](https://github.com/ykundesu/SuperNewRoles)のフォークです。
 元のリポジトリとは完全に分離して開発を行う都合上、Githubのフォークを使わずにフォークを行いました。
