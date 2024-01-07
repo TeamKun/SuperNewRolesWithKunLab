@@ -56,7 +56,7 @@ public class InkyaTenseiManager
                 if (DateTime.Now - 投げられた開始時間 > TimeSpan.FromSeconds(投げられる時間))
                 {
                     投げられる = false;
-                    PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer);
+                    PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer,true);
                     PlayerControl.LocalPlayer.RpcSetFinalStatus(FinalStatus.SuicideWisherSelfDeath);
                     inkyaPlayer = null;
                 }
