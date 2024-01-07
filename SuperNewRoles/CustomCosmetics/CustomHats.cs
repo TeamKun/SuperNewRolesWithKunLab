@@ -163,7 +163,7 @@ public class CustomHats
         hatViewData.name = hat.ProdId;
         hat.InFront = !ch.behind;
         hat.NoBounce = !ch.bounce;
-        hat.ChipOffset = new Vector2(0f, 0.2f);
+        hat.ChipOffset = new Vector2(0f, 0.25f);
         hat.Free = true;
         hat.NotInStore = true;
 
@@ -378,7 +378,14 @@ public class CustomHats
                     {
                         var color = pc.CurrentOutfit.ColorId;
                         pc.SetHat("hat_dusk", color);
-                        pc.HatRenderer().Hat = CreateHatData(hats[0], true, true);
+                        CustomHatData Hatdata = CreateHatData(hats[0], true, true);
+
+                        var assetRef = new AssetReference(Hatdata.htvd.CreateHVD.Pointer);
+
+                        Hatdata.ViewDataRef = assetRef;
+                        Hatdata.CreateAddressableAsset();
+                        HatManagerPatch.addHatData.Add(Hatdata);
+                        pc.HatRenderer().Hat = Hatdata;
                         pc.HatRenderer().SetHat(color);
                     }
                 }
@@ -557,7 +564,7 @@ public class CustomHatLoader
     public static Dictionary<string, string> hatRepos = new()
         {
 
-            { "https://raw.githubusercontent.com/ykundesu/SuperNewNamePlates/master", "SuperNewNamePlates" },
+            { "https://raw.githubusercontent.com/SuperNewRoles/SuperNewCosmetics/master", "SuperNewCosmetics" },
 
             { "https://raw.githubusercontent.com/hinakkyu/TheOtherHats/master", "mememurahat" },
             { "https://raw.githubusercontent.com/Ujet222/TOPHats/main", "YJ" },
@@ -578,6 +585,7 @@ public class CustomHatLoader
     private static async Task LaunchHatFetcherAsync()
     {
         if (ConfigRoles.DebugMode.Value) return;
+        if (ConfigRoles.IsModCosmeticsAreNotLoaded.Value) return;
         Directory.CreateDirectory(Path.GetDirectoryName(Application.dataPath) + @"\SuperNewRoles\");
         Directory.CreateDirectory(Path.GetDirectoryName(Application.dataPath) + @"\SuperNewRoles\CustomHatsChache\");
         hatDetails = new List<CustomHatOnline>();
@@ -587,7 +595,6 @@ public class CustomHatLoader
         {
             Repos.Add(repo);
         }
-        if (!ConfigRoles.DownloadSuperNewNamePlates.Value) return;
         string filePath = Path.GetDirectoryName(Application.dataPath) + @"\SuperNewRoles\CustomHatsChache\";
         foreach (string repo in repos)
         {
@@ -661,7 +668,7 @@ public class CustomHatLoader
         foreach (var repo in hatRepos)
         {
             SuperNewRolesPlugin.Logger.LogInfo("[CustomHats] ハットスタート:" + repo.Key);
-            if (!ConfigRoles.DownloadSuperNewNamePlates.Value)
+            if (ConfigRoles.IsModCosmeticsAreNotLoaded.Value)
             {
                 SuperNewRolesPlugin.Logger.LogInfo("ダウンロードをスキップしました:" + repo.Key);
             }

@@ -1,8 +1,11 @@
+using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using SuperNewRoles.MapOption;
 using SuperNewRoles.Roles.Crewmate;
+using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.RoleBases;
 using UnityEngine;
 
 namespace SuperNewRoles.Buttons;
@@ -17,6 +20,16 @@ public static class VentAndSabo
             [HarmonyArgument(0)] PlayerTask task)
         {
             Il2CppSystem.Collections.Generic.List<Vector2> locations = task.Locations;
+            //サウナー
+            ImportantTextTask imptsk;
+            if ((imptsk = task.TryCast<ImportantTextTask>()) != null)
+            {
+                if (imptsk.Text.StartsWith("<size=0%>Sauner</size>"))
+                {
+                    locations = Sauner.GetSaunaPos().ToIl2CppList();
+                }
+            }
+
             for (int i = 0; i < locations.Count; i++)
             {
                 Vector3 localPosition = locations[i] / MapUtilities.CachedShipStatus.MapScale;
@@ -176,7 +189,7 @@ public static class VentAndSabo
         public static void Prefix(Vent __instance, ref bool enabled)
         {
             if (!Mode.ModeHandler.IsMode(Mode.ModeId.SuperHostRoles) && PlayerControl.LocalPlayer.IsMadRoles() && !CustomOptionHolder.MadRolesCanVentMove.GetBool()) enabled = false;
-            if (NiceMechanic.TargetVent.ContainsValue(__instance) && ModHelpers.PlayerById(NiceMechanic.TargetVent.ToArray().FirstOrDefault(x => x.Value == __instance).Key).IsRole(RoleId.NiceMechanic)) enabled = false;
+            if (NiceMechanic.TargetVent.ContainsValue(__instance) && ModHelpers.PlayerById(NiceMechanic.TargetVent.FirstOrDefault(x => x.Value == __instance).Key).IsRole(RoleId.NiceMechanic)) enabled = false;
         }
     }
 
@@ -226,7 +239,7 @@ public static class VentAndSabo
         static void Postfix(Vent __instance)
         {
             // Vent outline set role color
-            var color = IntroData.GetIntroData(PlayerControl.LocalPlayer.GetRole(), PlayerControl.LocalPlayer).color;
+            var color = CustomRoles.GetRoleColor(PlayerControl.LocalPlayer);
             string[] outlines = new[] { "_OutlineColor", "_AddColor" };
             foreach (var name in outlines)
                 __instance.myRend.material.SetColor(name, color);

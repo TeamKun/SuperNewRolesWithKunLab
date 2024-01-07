@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using Hazel;
@@ -67,7 +68,7 @@ class Vampire
         if (source.IsRole(RoleId.Vampire) && PlayerControl.LocalPlayer.IsRole(RoleId.Dependents))
             HudManagerStartPatch.DependentsKillButton.Timer = HudManagerStartPatch.DependentsKillButton.MaxTimer;
         else if (source.IsRole(RoleId.Dependents) && PlayerControl.LocalPlayer.IsRole(RoleId.Vampire))
-            PlayerControl.LocalPlayer.killTimer = RoleHelpers.GetCoolTime(CachedPlayer.LocalPlayer);
+            PlayerControl.LocalPlayer.killTimer = RoleHelpers.GetCoolTime(CachedPlayer.LocalPlayer, target);
     }
     public static class FixedUpdate
     {
@@ -76,22 +77,22 @@ class Vampire
         {
             if (RoleClass.IsMeeting) return;
             foreach (PlayerControl p in RoleClass.Vampire.VampirePlayer) if (p.IsAlive()) return;
-            PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer);
+            PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer, true);
         }
         public static void AllClient()
         {
             Count--;
             if (Count > 0) return;
             Count = 3;
-            foreach (var data in RoleClass.Vampire.Targets.ToArray())
+            foreach (KeyValuePair<PlayerControl, PlayerControl> data in (Dictionary<PlayerControl,PlayerControl>)RoleClass.Vampire.Targets)
             {
                 if (data.Key == null || data.Value == null || !data.Key.IsRole(RoleId.Vampire) || data.Key.IsDead() || data.Value.IsDead())
                 {
                     RoleClass.Vampire.Targets.Remove(data.Key);
                     continue;
                 }
-                if (!RoleClass.Vampire.BloodStains.ContainsKey(data.Value.PlayerId))
-                    RoleClass.Vampire.BloodStains.Add(data.Value.PlayerId, new());
+                if (!RoleClass.Vampire.BloodStains.Contains(data.Value.PlayerId))
+                    RoleClass.Vampire.BloodStains[data.Value.PlayerId] = new();
                 RoleClass.Vampire.BloodStains[data.Value.PlayerId].Add(new(data.Value));
             }
         }
@@ -99,7 +100,7 @@ class Vampire
         {
             if (RoleClass.Vampire.target == null) return;
             FastDestroyableSingleton<HudManager>.Instance.KillButton.SetTarget(null);
-            PlayerControl.LocalPlayer.killTimer = RoleHelpers.GetCoolTime(CachedPlayer.LocalPlayer);
+            PlayerControl.LocalPlayer.killTimer = RoleHelpers.GetCoolTime(CachedPlayer.LocalPlayer, RoleClass.Vampire.target);
             var TimeSpanDate = new TimeSpan(0, 0, 0, (int)RoleClass.Vampire.KillDelay);
             RoleClass.Vampire.Timer = (float)((RoleClass.Vampire.KillTimer + TimeSpanDate - DateTime.Now).TotalSeconds);
             SuperNewRolesPlugin.Logger.LogInfo("ヴァンパイア:" + RoleClass.Vampire.Timer);

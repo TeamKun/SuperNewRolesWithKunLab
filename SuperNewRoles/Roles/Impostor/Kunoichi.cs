@@ -93,8 +93,8 @@ internal static class Kunoichi
                     if (p.PlayerId == CachedPlayer.LocalPlayer.PlayerId) continue;
                     if (Vector2.Distance(p.GetTruePosition() + new Vector2(0, 0.4f), kunaipos) < 0.4f)
                     {
-                        if (!RoleClass.Kunoichi.HitCount.ContainsKey(PlayerControl.LocalPlayer.PlayerId)) RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId] = new();
-                        if (!RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId].ContainsKey(p.PlayerId)) RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId][p.PlayerId] = 0;
+                        if (!RoleClass.Kunoichi.HitCount.Contains(PlayerControl.LocalPlayer.PlayerId)) RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId] = new();
+                        if (!RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId].Contains(p.PlayerId)) RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId][p.PlayerId] = 0;
                         RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId][p.PlayerId]++;
                         if (RoleClass.Kunoichi.HitCount[PlayerControl.LocalPlayer.PlayerId][p.PlayerId] >= RoleClass.Kunoichi.KillKunai)
                         {
@@ -210,11 +210,8 @@ internal static class Kunoichi
             if (player.cosmetics.hat != null)
                 player.cosmetics.hat.SpriteColor = color;
 
-            if (player.GetPet()?.rend != null)
-                player.GetPet().rend.color = color;
-
-            if (player.GetPet()?.shadowRend != null)
-                player.GetPet().shadowRend.color = color;
+            if (player.GetPet() != null)
+                player.GetPet().ForEachRenderer(true, (Il2CppSystem.Action<SpriteRenderer>)((render) => render.color = color));
 
             if (player.VisorSlot() != null)
                 player.VisorSlot().Image.color = color;

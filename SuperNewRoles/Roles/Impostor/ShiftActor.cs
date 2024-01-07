@@ -9,7 +9,7 @@ namespace SuperNewRoles.Roles.Impostor;
 public static class ShiftActor
 {
     public const int OptionId = 201800;// 設定のId
-                                    // CustomOptionHolder
+                                       // CustomOptionHolder
     public static CustomRoleOption ShiftActorOption;
     public static CustomOption ShiftActorPlayerCount;
     public static CustomOption ShiftActorKillCool;
@@ -95,7 +95,12 @@ public static class ShiftActor
                 }
                 else if (target.IsQuarreled())
                 {
-                    TargetRoleText += ModHelpers.Cs(RoleClass.Quarreled.color, "○"); //　クラード
+                    TargetRoleText += ModHelpers.Cs(Quarreled.color, "○"); //　クラード
+                }
+
+                if (target.IsHauntedWolf())
+                {
+                    TargetRoleText += $" + {ModHelpers.Cs(Attribute.HauntedWolf.RoleData.color, ModTranslation.GetString("HauntedWolfName"))}";
                 }
             }
         }

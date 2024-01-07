@@ -3,9 +3,14 @@ using AmongUs.GameOptions;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using HarmonyLib;
 using SuperNewRoles.Buttons;
+using SuperNewRoles.MapCustoms;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Replay;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.Role;
+using SuperNewRoles.Roles.RoleBases;
+using SuperNewRoles.Roles.RoleBases.Interfaces;
 using UnityEngine;
 
 namespace SuperNewRoles.Patches;
@@ -51,7 +56,8 @@ public class IntroPatch
             {
                 Logger.Info($"MapId:{GameManager.Instance.LogicOptions.currentGameOptions.MapId} MapNames:{(MapNames)GameManager.Instance.LogicOptions.currentGameOptions.MapId}", "Other Data");
                 Logger.Info($"Mode:{ModeHandler.GetMode()}", "Other Data");
-                foreach (IntroData data in IntroData.IntroList) { data._titleDesc = IntroData.GetTitle(data.NameKey, data.TitleNum); }
+                foreach (IntroData data in IntroData.Intros.Values) { data._titleDesc = IntroData.GetTitle(data.NameKey, data.TitleNum); }
+                foreach (IntroInfo info in IntroInfo.IntroInfos.Values) { info.UpdateIntroDesc(); }
             }
             Logger.Info("=================Activate Roles Data=================", " Other Data");
             {
@@ -60,6 +66,15 @@ public class IntroPatch
                 Logger.Info($"第三陣営役職 : 最大 {CustomOptionHolder.neutralRolesCountMax.GetSelection()}役職", "NeutralRole");
                 CustomOverlays.GetActivateRoles(true); // 現在の役職設定を取得し、辞書に保存するついでにlogに記載する
             }
+            CustomRoles.OnIntroStart();
+        }
+    }
+    [HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene.OnDestroy))]
+    class IntroCutsceneOnDestroyReplayPatch
+    {
+        public static void Postfix(IntroCutscene __instance)
+        {
+            ReplayManager.CoIntroDestory();
         }
     }
     [HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene.OnDestroy))]
@@ -68,9 +83,20 @@ public class IntroPatch
         public static PoolablePlayer playerPrefab;
         public static void Prefix(IntroCutscene __instance)
         {
+            TaskCount.IsClearTaskPlayer = null;
+            PlayerData<bool> TaskPlayers = new(defaultvalue: false);
+            foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+            {
+                TaskPlayers[player] = player.IsClearTask(IsUseFirst:false);
+            }
+            TaskCount.IsClearTaskPlayer = TaskPlayers;
+            foreach (PlayerControl player in BotManager.AllBots)
+            {
+                GameData.Instance.RemovePlayer(player.PlayerId);
+            }
             if (ModeHandler.IsMode(ModeId.HideAndSeek))
             {
-                new LateTask(() => RoleClass.Tuna.IsMeetingEnd = true, 6);
+                new LateTask(() => RoleClass.IsFirstMeetingEnd = true, 6);
             }
             // プレイヤーのアイコンを生成
             if (PlayerControl.LocalPlayer != null && FastDestroyableSingleton<HudManager>.Instance != null)
@@ -93,8 +119,11 @@ public class IntroPatch
                     MapOption.MapOption.playerIcons[p.PlayerId] = player;
                     if (CachedPlayer.LocalPlayer.PlayerControl.IsRole(RoleId.Hitman))
                     {
-                        player.transform.localPosition = bottomLeft + new Vector3(-0.25f, 0f, 0);
-                        player.transform.localScale = Vector3.one * 0.4f;
+                        player.transform.localPosition = new(-4.5f, -2.15f, -9f);
+                        player.transform.localScale = Vector3.one * 0.6f;
+                        Transform PlayerNames = player.NameText().transform.parent;
+                        PlayerNames.localPosition = new(0, -0.5f, 0f);
+                        PlayerNames.localScale = Vector3.one * 1.5f;
                         player.gameObject.SetActive(false);
                     }
                     else if (PlayerControl.LocalPlayer.IsRole(RoleId.GM))
@@ -153,7 +182,7 @@ public class IntroPatch
                 Roles.Neutral.Hitman.DestroyIntroHandle(__instance);
                 if (FastDestroyableSingleton<HudManager>.Instance != null)
                 {
-                    Vector3 bottomLeft = new Vector3(-FastDestroyableSingleton<HudManager>.Instance.UseButton.transform.localPosition.x, FastDestroyableSingleton<HudManager>.Instance.UseButton.transform.localPosition.y, FastDestroyableSingleton<HudManager>.Instance.UseButton.transform.localPosition.z) + new Vector3(-0.25f, 1f, 0);
+                    Vector3 bottomLeft = new(-4.65f, -2.25f, -9);
                     RoleClass.Hitman.cooldownText = Object.Instantiate(FastDestroyableSingleton<HudManager>.Instance.KillButton.cooldownTimerText, FastDestroyableSingleton<HudManager>.Instance.transform);
                     RoleClass.Hitman.cooldownText.alignment = TMPro.TextAlignmentOptions.Center;
                     RoleClass.Hitman.cooldownText.transform.localPosition = bottomLeft + new Vector3(0f, -1f, -1f);
@@ -161,10 +190,41 @@ public class IntroPatch
                 }
             }
         }
+        public static void Postfix()
+        {
+            CustomRoles.OnIntroDestroy();
+            // 昇降右の影
+            if (MapCustomHandler.IsMapCustom(MapCustomHandler.MapCustomId.Airship) && MapCustom.ModifyGapRoomOneWayShadow.GetBool() && ShipStatus.Instance.FastRooms.TryGetValue(SystemTypes.GapRoom, out var gapRoom))
+            {
+                var gapRoomShadow = gapRoom.GetComponentInChildren<OneWayShadows>();
+                var amImpostorLight = PlayerControl.LocalPlayer.IsImpostor() || PlayerControl.LocalPlayer.IsImpostorLight();
+                if (MapCustom.GapRoomShadowIgnoresImpostors.GetBool() && amImpostorLight)
+                {
+                    // オブジェクトを非アクティブにすると影判定自体が消えるのでどちらからでも見通せる
+                    gapRoomShadow.gameObject.SetActive(false);
+                }
+                else if (MapCustom.DisableGapRoomShadowForNonImpostor.GetBool() && !amImpostorLight)
+                {
+                    // OneWayShadowsを無効にしても影判定は残るので普通の壁のような双方向の影になる
+                    gapRoomShadow.enabled = false;
+                }
+            }
+        }
     }
 
     public static void SetupIntroTeamIcons(IntroCutscene __instance, ref Il2CppSystem.Collections.Generic.List<PlayerControl> yourTeam)
     {
+        if (ReplayManager.IsReplayMode)
+        {
+            var newTeam = new Il2CppSystem.Collections.Generic.List<PlayerControl>();
+            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            {
+                if (p != PlayerControl.LocalPlayer)
+                    newTeam.Add(p);
+            }
+            yourTeam = newTeam;
+            return;
+        }
         if (ModeHandler.IsMode(ModeId.Default))
         {
             var newTeam2 = new Il2CppSystem.Collections.Generic.List<PlayerControl>();
@@ -269,6 +329,18 @@ public class IntroPatch
                         }
                         yourTeam = TheThreeLittlePigsTeams;
                         break;
+                    case RoleId.Pokerface:
+                        Il2CppSystem.Collections.Generic.List<PlayerControl> PokerfaceTeams = new();
+                        Pokerface.PokerfaceTeam team = Pokerface.GetPokerfaceTeam(PlayerControl.LocalPlayer.PlayerId);
+                        if (team != null)
+                        {
+                            foreach (var player in team.TeamPlayers)
+                            {
+                                PokerfaceTeams.Add(player);
+                            }
+                        }
+                        yourTeam = PokerfaceTeams;
+                        break;
                     default:
                         if (PlayerControl.LocalPlayer.IsImpostor())
                         {
@@ -316,9 +388,8 @@ public class IntroPatch
         string ImpostorText = __instance.ImpostorText.text;
         if (ModeHandler.IsMode(ModeId.Default, ModeId.SuperHostRoles))
         {
-            if (PlayerControl.LocalPlayer.IsNeutral() && !PlayerControl.LocalPlayer.IsRole(RoleId.GM))
+            if (PlayerControl.LocalPlayer.IsNeutral() && !PlayerControl.LocalPlayer.IsRole(RoleId.GM, RoleId.Pokerface))
             {
-                IntroData Intro = IntroData.GetIntroData(PlayerControl.LocalPlayer.GetRole(), PlayerControl.LocalPlayer);
                 TeamTitle = ModTranslation.GetString("Neutral");
                 ImpostorText = ModTranslation.GetString("NeutralSubIntro");
                 color = new(127, 127, 127, byte.MaxValue);
@@ -341,9 +412,9 @@ public class IntroPatch
                 {
                     case RoleId.SatsumaAndImo:
                     case RoleId.GM:
-                        IntroData Intro = IntroData.GetIntroData(PlayerControl.LocalPlayer.GetRole(), PlayerControl.LocalPlayer);
-                        color = Intro.color;
-                        TeamTitle = ModTranslation.GetString(Intro.NameKey + "Name");
+                    case RoleId.Pokerface:
+                        color = CustomRoles.GetRoleColor(PlayerControl.LocalPlayer);
+                        TeamTitle = CustomRoles.GetRoleName(PlayerControl.LocalPlayer);
                         ImpostorText = "";
                         break;
                 }
@@ -368,10 +439,9 @@ public class IntroPatch
                 var myrole = PlayerControl.LocalPlayer.GetRole();
                 if (myrole is not (RoleId.DefaultRole or RoleId.Bestfalsecharge))
                 {
-                    var data = IntroData.GetIntroData(myrole, PlayerControl.LocalPlayer);
-                    color = data.color;
-                    TeamTitle = ModTranslation.GetString(data.NameKey + "Name");
-                    ImpostorText = data.TitleDesc;
+                    color = CustomRoles.GetRoleColor(myrole);
+                    TeamTitle = CustomRoles.GetRoleName(myrole);
+                    ImpostorText = CustomRoles.GetRoleIntro(myrole);
                 }
                 if (PlayerControl.LocalPlayer.IsLovers())
                 {
@@ -391,6 +461,8 @@ public class IntroPatch
         }
         __instance.TeamTitle.text = TeamTitle;
         __instance.ImpostorText.text = ImpostorText;
+        if (ImpostorText != "")
+            __instance.ImpostorText.gameObject.SetActive(true);
         __instance.BackgroundBar.material.color = color;
         __instance.TeamTitle.color = color;
 
@@ -474,22 +546,25 @@ public class IntroPatch
             {
                 var player = PlayerControl.LocalPlayer;
                 var myrole = PlayerControl.LocalPlayer.GetRole();
-                var data = IntroData.GetIntroData(myrole);
-
-                __instance.YouAreText.color = data.color;           //あなたのロールは...を役職の色に変更
-                __instance.RoleText.color = data.color;             //役職名の色を変更
-                __instance.RoleBlurbText.color = data.color;        //イントロの簡易説明の色を変更
 
                 if (myrole is RoleId.Bestfalsecharge)
-                {
-                    data = IntroData.CrewmateIntro;
-                    __instance.YouAreText.color = Palette.CrewmateBlue;     //あなたのロールは...を役職の色に変更
-                    __instance.RoleText.color = Palette.CrewmateBlue;       //役職名の色を変更
-                    __instance.RoleBlurbText.color = Palette.CrewmateBlue;  //イントロの簡易説明の色を変更
-                }
+                    myrole = RoleId.DefaultRole;
 
-                __instance.RoleText.text = data.Name;               //役職名を変更
-                __instance.RoleBlurbText.text = data.TitleDesc;     //イントロの簡易説明を変更
+                Color roleColor = CustomRoles.GetRoleColor(myrole);
+                __instance.YouAreText.color = roleColor;           //あなたのロールは...を役職の色に変更
+                __instance.RoleText.color = roleColor;             //役職名の色を変更
+                __instance.RoleBlurbText.color = roleColor;        //イントロの簡易説明の色を変更
+
+                __instance.RoleText.text = CustomRoles.GetRoleName(myrole);               //役職名を変更
+                if (PlayerControl.LocalPlayer.GetRoleBase() is IGroupIntro GroupIntro &&
+                GroupIntro.IsGroupIntro(out string IntroText))
+                {
+                    __instance.RoleBlurbText.text = IntroText;       //イントロのグループ説明を変更
+                }
+                else
+                {
+                    __instance.RoleBlurbText.text = CustomRoles.GetRoleIntro(myrole);     //イントロの簡易説明を変更
+                }
 
                 if (myrole is RoleId.DefaultRole)
                 {

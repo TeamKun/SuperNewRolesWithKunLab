@@ -369,19 +369,25 @@ public static class Balancer
         return obj;
     }
 
-
-    [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.UpdateButtons))]
-    class Balancer_updatepatch
+    internal class Balancer_updatepatch
     {
-        static void Postfix(MeetingHud __instance)
+        internal static void UpdateButtonsPostfix(MeetingHud __instance)
         {
-            if (PlayerControl.LocalPlayer.IsDead() && PlayerControl.LocalPlayer.IsRole(RoleId.Balancer))
+            if (PlayerControl.LocalPlayer.IsDead())
             {
-                __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("BalancerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+                __instance.playerStates.ForEach(x => { if (x.transform.FindChild("BalancerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            }
+            if (currentAbilityUser != null)
+            {
+                foreach (PlayerVoteArea area in MeetingHud.Instance.playerStates)
+                {
+                    if (area.TargetPlayerId != targetplayerleft.PlayerId &&
+                        area.TargetPlayerId != targetplayerright.PlayerId)
+                        area.gameObject.SetActive(false);
+                }
             }
         }
     }
-    [HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.Start))]
     public static class Balancer_Patch
     {
         private static string nameData;
@@ -392,7 +398,7 @@ public static class Balancer
             if (currentTarget == null)
             {
                 currentTarget = Target;
-                __instance.playerStates.ToList().ForEach(x => { if (x.TargetPlayerId == currentTarget.PlayerId && x.transform.FindChild("BalancerButton") != null) x.transform.FindChild("BalancerButton").gameObject.SetActive(false); });
+                __instance.playerStates.ForEach(x => { if (x.TargetPlayerId == currentTarget.PlayerId && x.transform.FindChild("BalancerButton") != null) x.transform.FindChild("BalancerButton").gameObject.SetActive(false); });
                 return;
             }
             MessageWriter writer = RPCHelper.StartRPC(CustomRPC.BalancerBalance);
@@ -402,11 +408,11 @@ public static class Balancer
             writer.EndRPC();
             RPCProcedure.BalancerBalance(PlayerControl.LocalPlayer.PlayerId, currentTarget.PlayerId, Target.PlayerId);
             IsAbilityUsed = true;
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("BalancerButton") != null) UnityEngine.Object.Destroy(x.transform.FindChild("BalancerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("BalancerButton") != null) UnityEngine.Object.Destroy(x.transform.FindChild("BalancerButton").gameObject); });
         }
         static void Event(MeetingHud __instance)
         {
-            if (PlayerControl.LocalPlayer.IsRole(RoleId.Balancer) && PlayerControl.LocalPlayer.IsAlive() && !IsAbilityUsed)
+            if (PlayerControl.LocalPlayer.IsAlive() && !IsAbilityUsed)
             {
                 for (int i = 0; i < __instance.playerStates.Length; i++)
                 {
@@ -429,7 +435,7 @@ public static class Balancer
             }
         }
 
-        static void Postfix(MeetingHud __instance)
+        internal static void MeetingHudStartPostfix(MeetingHud __instance)
         {
             Event(__instance);
         }

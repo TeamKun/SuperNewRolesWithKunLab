@@ -4,11 +4,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using AmongUs.Data;
 using BepInEx;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
+using Il2CppInterop.Runtime.Injection;
+using InnerNet;
+using SuperNewRoles.CustomObject;
+using SuperNewRoles.MapCustoms;
+using SuperNewRoles.SuperNewRolesWeb;
+using SuperNewRoles.Roles;
+using SuperNewRoles.Roles.Crewmate;
+using SuperNewRoles.Roles.CrewMate;
+using SuperNewRoles.Roles.Attribute;
+using TMPro;
 using UnityEngine;
+using SuperNewRoles.Roles.RoleBases;
+using SuperNewRoles.Roles.Role;
+using SuperNewRoles.WaveCannonObj;
 
 namespace SuperNewRoles;
 
@@ -22,12 +36,12 @@ public partial class SuperNewRolesPlugin : BasePlugin
 {
     public static readonly string VersionString = $"{Assembly.GetExecutingAssembly().GetName().Version}";
 
-    public static bool IsBeta = IsViewText && ThisAssembly.Git.Branch != MasterBranch;
+    public const bool IsBeta = ThisAssembly.Git.Branch != MasterBranch && !IsHideText;
 
-    //プルリク時にfalseなら指摘してください
-    public const bool IsViewText = true;
+    public const bool IsSecretBranch = false; // プルリク時にtrueなら指摘してください
+    public const bool IsHideText = false; // プルリク時にtrueなら指摘してください
 
-    public const string ModUrl = "ykundesu/SuperNewRoles";
+    public const string ModUrl = "SuperNewRoles/SuperNewRoles";
     public const string MasterBranch = "master";
     public static string ModName => IsApril() ? "SuperNakanzinoRoles" : "SuperNewRoles";
     public static string ColorModName => $"<color=#ffa500>Super</color><color=#ff0000>{(IsApril() ? "Nakanzino" : "New")}</color><color=#00ff00>Roles</color>";
@@ -47,22 +61,54 @@ public partial class SuperNewRolesPlugin : BasePlugin
     public static bool IsUpdate = false;
     public static string NewVersion = "";
     public static string thisname;
+    public static string ThisPluginModName;
+    //対応しているバージョン。nullなら全て。
+    public static string[] SupportVanilaVersion = new string[] { "2023.10.24" };
 
     public override void Load()
     {
         Logger = Log;
         Instance = this;
-        // All Load() Start
         ModTranslation.LoadCsv();
-        ChacheManager.Load();
-        CustomCosmetics.CustomColors.Load();
+        bool CreatedVersionPatch = false;
+
+        //初期状態ではRoleInfoやOptionInfoなどが読み込まれていないため、
+        //ここで読み込む
+        Type RoleInfoType = typeof(RoleInfo);
+        Type RoleBaseType = typeof(RoleBase);
+        Assembly.GetAssembly(RoleBaseType)
+        .GetTypes()
+        .Where(t =>
+        {
+            if (t.IsSubclassOf(RoleBaseType))
+            {
+                foreach (FieldInfo field in t.GetFields())
+                {
+                    if (field.IsStatic && field.FieldType == RoleInfoType)
+                        field.GetValue(null);
+                }
+            }
+            return false;
+        }).ToList();
+
+        //SetNonVanilaVersionPatch();
+        // All Load() Start
+        OptionSaver.Load();
         ConfigRoles.Load();
+        WebAccountManager.Load();
+        ContentManager.Load();
+        //WebAccountManager.SetToken("XvSwpZ8CsQgEksBg");
+        ChacheManager.Load();
+        WebConstants.Load();
+        CustomCosmetics.CustomColors.Load();
+        ModDownloader.Load();
         CustomOptionHolder.Load();
-        Patches.FreeNamePatch.Initialize();
+        LegacyOptionDataMigration.Load();
+        AccountLoginMenu.Initialize();
         // All Load() End
 
-        // Old Delete Start
 
+        // Old Delete Start
         try
         {
             DirectoryInfo d = new(Path.GetDirectoryName(Application.dataPath) + @"\BepInEx\plugins");
@@ -107,29 +153,94 @@ public partial class SuperNewRolesPlugin : BasePlugin
 
         Logger.LogInfo(ModTranslation.GetString("\n---------------\nSuperNewRoles\n" + ModTranslation.GetString("StartLogText") + "\n---------------"));
 
-        var assembly = Assembly.GetExecutingAssembly();
-
         StringDATA = new Dictionary<string, Dictionary<int, string>>();
         Harmony.PatchAll();
-
-        assembly = Assembly.GetExecutingAssembly();
+        var assembly = Assembly.GetExecutingAssembly();
         string[] resourceNames = assembly.GetManifestResourceNames();
         foreach (string resourceName in resourceNames)
             if (resourceName.EndsWith(".png"))
                 ModHelpers.LoadSpriteFromResources(resourceName, 115f);
-    }
+        ThisPluginModName = IL2CPPChainloader.Instance.Plugins.FirstOrDefault(x => x.Key == "jp.ykundesu.supernewroles").Value.Metadata.Name;
 
-    [HarmonyPatch(typeof(Constants), nameof(Constants.GetBroadcastVersion))]
-    class GetBroadcastVersionPatch
+        //Register Il2cpp
+        ClassInjector.RegisterTypeInIl2Cpp<CustomAnimation>();
+        ClassInjector.RegisterTypeInIl2Cpp<SluggerDeadbody>();
+        ClassInjector.RegisterTypeInIl2Cpp<WaveCannonObject>();
+        ClassInjector.RegisterTypeInIl2Cpp<RocketDeadbody>();
+        ClassInjector.RegisterTypeInIl2Cpp<SpiderTrap>();
+        ClassInjector.RegisterTypeInIl2Cpp<WCSantaHandler>();
+    }
+    static bool ViewdNonVersion = false;
+    public static void SetNonVanilaVersionPatch()
     {
-        static void Postfix(ref int __result)
+        if (SupportVanilaVersion != null && !SupportVanilaVersion.Contains(Application.version))
         {
-            if (AmongUsClient.Instance.NetworkMode is NetworkModes.LocalGame or NetworkModes.FreePlay) return;
-            if (ModHelpers.IsCustomServer()) return;
-            __result = Constants.GetVersion(2222, 0, 0, 0);
+            var CVoriginal = AccessTools.Method(typeof(MainMenuManager), nameof(MainMenuManager.Awake));
+            var CVpostfix = new HarmonyMethod(typeof(SuperNewRolesPlugin), nameof(SuperNewRolesPlugin.MainMenuVersionCheckPatch));
+            SuperNewRolesPlugin.Instance.Harmony.Patch(CVoriginal, postfix: CVpostfix);
         }
     }
 
+    public static void MainMenuVersionCheckPatch(MainMenuManager __instance)
+    {
+        if (SupportVanilaVersion != null && !SupportVanilaVersion.Contains(Application.version) && !ViewdNonVersion)
+        {
+            GenericPopup popup = GameObject.Instantiate(DestroyableSingleton<DiscordManager>.Instance.discordPopup);
+            popup.transform.FindChild("Background").transform.localScale = new(3, 2.5f, 1f);
+            Transform ExitGame = popup.transform.FindChild("ExitGame");
+            ExitGame.transform.localPosition = new(0, -2f, -0.5f);
+            TextMeshPro egtmp = ExitGame.GetComponentInChildren<TextMeshPro>();
+            GameObject.Destroy(egtmp.GetComponent<TextTranslatorTMP>());
+            egtmp.text = "OK";
+            StringBuilder builder = new($"<size=200%>やあ、みなさん</size>\n\nこのバージョンでは今のバニラバージョン、「{Application.version}」を\nサポートしていません。\nこのバージョンが対応しているバニラバージョンは、\n<size=150%>");
+            int count = 0;
+            foreach (string ver in SupportVanilaVersion)
+            {
+                builder.Append($"「{ver}」");
+                count++;
+                if (count >= 3)
+                {
+                    builder.Append('\n');
+                    count = 0;
+                }
+            }
+            if (count > 0)
+                builder.Append('\n');
+            builder.Append("</size>です。もし対応しているバニラバージョンより今のバニラバージョンが低いならば、\nSuperNewRolesをアップデートしてみましょう！\n");
+            builder.Append("しかし、もし対応しているバニラバージョンの方が今のバニラバージョンより低かったなら、\n");
+            builder.Append("SuperNewRolesの新しいアップデートを確認してみましょう！\n");
+            builder.Append("もし、新バージョンが出ているならzipから更新してくださいね。\n出ていなかったら出るのを待ちましょう!");
+            builder.AppendLine("出ているかはSuperNewRolesの公式Twitter(新X)を確認しましょう!");
+            builder.AppendLine("<link=\"https://x.com/SNROfficials\">SuperNewRoles公式X:https://x.com/SNROfficials</link>");
+            builder.AppendLine("<link=\"https://github.com/SuperNewRoles/SuperNewRoles/releases/\">SuperNewRoles公式Githubリリースページ:https://github.com/SuperNewRoles/SuperNewRoles/releases/</link>");
+            //builder.AppendLine("(リンクを押すとブラウザが開きます)");
+            builder.AppendLine("リリースを待っててね!");
+            popup.TextAreaTMP.text = builder.ToString();
+            popup.gameObject.SetActive(true);
+            popup.TextAreaTMP.transform.localScale = Vector3.one * 1.5f;
+            popup.TextAreaTMP.transform.localPosition = new(0, 0.3f, - 0.5f);
+            ViewdNonVersion = true;
+        }
+    }
+    [HarmonyPatch(typeof(Constants), nameof(Constants.GetBroadcastVersion))]
+    class GetBroadcastVersionPatch
+    {
+        public static void Postfix(ref int __result)
+        {
+            if (AmongUsClient.Instance.NetworkMode is NetworkModes.LocalGame or NetworkModes.FreePlay) return;
+            if (ModHelpers.IsCustomServer()) return;
+            __result += 25;
+        }
+    }
+    [HarmonyPatch(typeof(Constants), nameof(Constants.IsVersionModded))]
+    public static class ConstantsVersionModdedPatch
+    {
+        public static bool Prefix(ref bool __result)
+        {
+            __result = true;
+            return false;
+        }
+    }
     public static bool IsApril()
     {
         DateTime utcNow = DateTime.UtcNow;

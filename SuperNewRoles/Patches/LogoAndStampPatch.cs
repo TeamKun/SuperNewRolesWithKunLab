@@ -9,6 +9,7 @@ using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using SuperNewRoles.CustomCosmetics;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Replay;
 using TMPro;
 using UnityEngine;
 
@@ -49,11 +50,10 @@ public static class CredentialsPatch
             version.transform.localScale = Vector3.one * 1.5f;
             version.SetText($"{SuperNewRolesPlugin.ModName} v{SuperNewRolesPlugin.VersionString}");
 
-//            credentials.transform.SetParent(amongUsLogo.transform);
-//            version.transform.SetParent(amongUsLogo.transform);
+            //            credentials.transform.SetParent(amongUsLogo.transform);
+            //            version.transform.SetParent(amongUsLogo.transform);
         }
     }
-
     [HarmonyPatch(typeof(PingTracker), nameof(PingTracker.Update))]
     private static class PingTrackerPatch
     {
@@ -125,8 +125,8 @@ public static class CredentialsPatch
                 }
             }
         }
-        public static string SponsersData = "";
         public static string DevsData = "";
+        public static string SupporterData = "";
         public static string TransData = "";
 
         public static async Task<HttpStatusCode> FetchBoosters()
@@ -157,16 +157,16 @@ public static class CredentialsPatch
                     {
                         if (current.HasValues)
                         {
-                            DevsData += current["name"]?.ToString() + "\n";
+                            DevsData += $"{current["number"]?.ToString()} : {current["name"]?.ToString()}\n";
                         }
                     }
 
-                    var Sponsers = jobj["Sponsers"];
+                    var Sponsers = jobj["Supporter"];
                     for (JToken current = Sponsers.First; current != null; current = current.Next)
                     {
                         if (current.HasValues)
                         {
-                            SponsersData += current["name"]?.ToString() + "\n";
+                            SupporterData += current["name"]?.ToString() + "\n";
                         }
                     }
 
@@ -175,7 +175,7 @@ public static class CredentialsPatch
                     {
                         if (current.HasValues)
                         {
-                            TransData += current["name"]?.ToString() + "\n";
+                            TransData += $"{current["name"]?.ToString()}<size=40%>({current["language"]?.ToString()})</size>\n";
                         }
                     }
                 }
@@ -193,37 +193,39 @@ public static class CredentialsPatch
             var obj = GameObject.Instantiate(template, template.transform.parent).gameObject;
             CreditsPopup = obj;
             GameObject.Destroy(obj.GetComponent<StatsPopup>());
-            var devtitletext = obj.transform.FindChild("StatNumsText_TMP");
-            devtitletext.GetComponent<TextMeshPro>().text = ModTranslation.GetString("Developer");
-            devtitletext.localPosition = new Vector3(-3.25f, -1.65f, -2f);
-            devtitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
-            var devtext = obj.transform.FindChild("StatsText_TMP");
-            devtext.localPosition = new Vector3(-1f, -1.65f, -2f);
-            devtext.localScale = new Vector3(1.25f, 1.25f, 1f);
-            devtext.GetComponent<TextMeshPro>().text = DevsData;
 
-            var boostertitletext = GameObject.Instantiate(devtitletext, obj.transform);
-            boostertitletext.GetComponent<TextMeshPro>().text = ModTranslation.GetString("Sponsor");
-            boostertitletext.localPosition = new Vector3(1.45f, -1.65f, -2f);
-            boostertitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
+            var devTitletext = obj.transform.FindChild("StatNumsText_TMP");
+            devTitletext.GetComponent<TextMeshPro>().text = ModTranslation.GetString("Developer");
+            devTitletext.localPosition = new Vector3(-3.25f, -1.65f, -2f);
+            devTitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
 
-            var boostertext = GameObject.Instantiate(devtext, obj.transform);
-            boostertext.localPosition = new Vector3(3f, -1.65f, -2f);
-            boostertext.localScale = new Vector3(1.25f, 1.25f, 1f);
-            boostertext.GetComponent<TextMeshPro>().text = SponsersData;
+            var devText = obj.transform.FindChild("StatsText_TMP");
+            devText.localPosition = new Vector3(-1f, -1.65f, -2f);
+            devText.localScale = new Vector3(1.25f, 1.25f, 1f);
+            devText.GetComponent<TextMeshPro>().text = DevsData;
 
-            var transtitletext = GameObject.Instantiate(devtitletext, obj.transform);
-            transtitletext.GetComponent<TextMeshPro>().text = ModTranslation.GetString("Translator");
-            transtitletext.localPosition = new Vector3(0.5f, -4.5f, -2f);
-            transtitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
+            var supporterTitletext = UnityEngine.Object.Instantiate(devTitletext, obj.transform);
+            supporterTitletext.GetComponent<TextMeshPro>().text = $"<align={"left"}>{ModTranslation.GetString("Supporter")}</align>";
+            supporterTitletext.localPosition = new Vector3(1.45f, -1.65f, -2f);
+            supporterTitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
 
-            var transtext = GameObject.Instantiate(devtext, obj.transform);
-            transtext.localPosition = new Vector3(3f, -5f, -2f);
-            transtext.localScale = new Vector3(1.5f, 1.5f, 1f);
-            transtext.GetComponent<TextMeshPro>().text = TransData;
+            var supporterText = UnityEngine.Object.Instantiate(devText, obj.transform);
+            supporterText.localPosition = new Vector3(3f, -1.65f, -2f);
+            supporterText.localScale = new Vector3(1.25f, 1.25f, 1f);
+            supporterText.GetComponent<TextMeshPro>().text = SupporterData;
+
+            var transTitletext = UnityEngine.Object.Instantiate(devTitletext, obj.transform);
+            transTitletext.GetComponent<TextMeshPro>().text = $"<align={"left"}>{ModTranslation.GetString("Translator")}</align>";
+            transTitletext.localPosition = new Vector3(1.45f, -4.5f, -2f);
+            transTitletext.localScale = new Vector3(1.5f, 1.5f, 1f);
+
+            var transText = UnityEngine.Object.Instantiate(devText, obj.transform);
+            transText.localPosition = new Vector3(3f, -4.5f, -2f);
+            transText.localScale = new Vector3(1.25f, 1.25f, 1f);
+            transText.GetComponent<TextMeshPro>().text = TransData;
 
             var textobj = obj.transform.FindChild("Title_TMP");
-            GameObject.Destroy(textobj.GetComponent<TextTranslatorTMP>());
+            UnityEngine.Object.Destroy(textobj.GetComponent<TextTranslatorTMP>());
             textobj.GetComponent<TextMeshPro>().text = ModTranslation.GetString("DevAndSpnTitle");
             textobj.localScale = new Vector3(1.5f, 1.5f, 1f);
             obj.transform.FindChild("Background").localScale = new Vector3(1.5f, 1f, 1f);
@@ -263,6 +265,7 @@ public static class CredentialsPatch
 
             instance = __instance;
 
+            AmongUsClient.Instance.StartCoroutine(ModDownloader.DownloadModData(__instance).WrapToIl2Cpp());
             AmongUsClient.Instance.StartCoroutine(ViewBoosterCoro(__instance).WrapToIl2Cpp());
 
             //ViewBoosterPatch(__instance);
@@ -284,8 +287,11 @@ public static class CredentialsPatch
 
             LoadSprites();
             renderer.sprite = bannerRendSprite;
+            __instance.howToPlayButton.transform.localPosition = new(-1.925f, -1.75f, 0);
+            PassiveButton FreePlayButton = __instance.howToPlayButton.transform.parent.FindChild("FreePlayButton").GetComponent<PassiveButton>();
+            FreePlayButton.transform.localPosition = new(-0.05f, -1.75f, 0);
+            ReplayManager.CreateReplayButton(__instance, FreePlayButton);
         }
-
 
         public static void LoadSprites()
         {

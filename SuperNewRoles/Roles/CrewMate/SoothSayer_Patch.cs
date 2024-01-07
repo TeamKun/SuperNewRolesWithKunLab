@@ -1,22 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using SuperNewRoles.Roles.RoleBases;
 using UnityEngine;
 
 namespace SuperNewRoles.Roles;
 
-[HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.UpdateButtons))]
 class SoothSayer_updatepatch
 {
-    static void Postfix(MeetingHud __instance)
+    internal static void UpdateButtonsPostfix(MeetingHud __instance)
     {
-        if (PlayerControl.LocalPlayer.IsDead() && PlayerControl.LocalPlayer.IsRole(RoleId.SoothSayer))
+        if (PlayerControl.LocalPlayer.IsDead())
         {
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
         }
     }
 }
-[HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.Start))]
 public static class SoothSayer_Patch
 {
     private static string nameData;
@@ -24,16 +23,19 @@ public static class SoothSayer_Patch
     {
         var Target = ModHelpers.PlayerById(__instance.playerStates[Index].TargetPlayerId);
         var introData = Target.GetRole();
+        var isReverseDecision = Attribute.HauntedWolf.CustomOptionData.IsReverseSheriffDecision.GetBool() && PlayerControl.LocalPlayer.IsHauntedWolf();
         if (RoleClass.SoothSayer.DisplayMode)
         {
-            if (Target.IsImpostor()) nameData = "Impostor";
-            if (Target.IsHauntedWolf()) nameData = "Impostor";
+            var isImpostor = Target.IsImpostor() || Target.IsHauntedWolf();
+            if (isReverseDecision) isImpostor ^= true;
+
+            if (isImpostor) nameData = "Impostor";
             else if (Target.IsNeutral()) nameData = "Neutral";
-            else if (Target.IsCrew()) nameData = "Crewmate";
+            else nameData = "Crewmate";
         }
         else
         {
-            if (introData != RoleId.ShermansServant) nameData = IntroData.GetIntroData(introData, Target).NameKey;
+            if (introData != RoleId.ShermansServant) nameData = CustomRoles.GetRoleNameKey(introData, Target);
             else nameData = "Crewmate";
         }
         var name = ModTranslation.GetString(nameData + "Name");
@@ -43,11 +45,11 @@ public static class SoothSayer_Patch
         if (!RoleClass.SoothSayer.DisplayedPlayer.Contains(Target.PlayerId))
         {
             RoleClass.SoothSayer.DisplayedPlayer.Add(Target.PlayerId);
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null && x.TargetPlayerId == Target.PlayerId) UnityEngine.Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null && x.TargetPlayerId == Target.PlayerId) UnityEngine.Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
         }
         if (RoleClass.SoothSayer.Count <= 0)
         {
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) UnityEngine.Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) UnityEngine.Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
         }
     }
     static void Event(MeetingHud __instance)
@@ -79,17 +81,20 @@ public static class SoothSayer_Patch
     {
         var Target = ModHelpers.PlayerById(__instance.playerStates[Index].TargetPlayerId);
         var introData = Target.GetRole();
-        nameData = IntroData.GetIntroData(introData, Target).NameKey;
+        nameData = CustomRoles.GetRoleNameKey(introData, Target);
+        var isReverseDecision = Attribute.HauntedWolf.CustomOptionData.IsReverseSheriffDecision.GetBool() && PlayerControl.LocalPlayer.IsHauntedWolf();
         if (RoleClass.SpiritMedium.DisplayMode)
         {
-            if (Target.IsImpostor()) nameData = "Impostor";
-            if (Target.IsHauntedWolf()) nameData = "Impostor";
+            var isImpostor = Target.IsImpostor() || Target.IsHauntedWolf();
+            if (isReverseDecision) isImpostor ^= true;
+
+            if (isImpostor) nameData = "Impostor";
             else if (Target.IsNeutral()) nameData = "Neutral";
-            else if (Target.IsCrew()) nameData = "Crewmate";
+            else nameData = "Crewmate";
         }
         else
         {
-            if (introData != RoleId.ShermansServant) nameData = IntroData.GetIntroData(introData, Target).NameKey;
+            if (introData != RoleId.ShermansServant) nameData = CustomRoles.GetRoleNameKey(introData, Target);
             else nameData = "Crewmate";
         }
         var name = ModTranslation.GetString(nameData + "Name");
@@ -101,8 +106,8 @@ public static class SoothSayer_Patch
         }
         if (RoleClass.SpiritMedium.MaxCount <= 0)
         {
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null && x.TargetPlayerId == Target.PlayerId) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null && x.TargetPlayerId == Target.PlayerId) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("SoothSayerButton") != null) Object.Destroy(x.transform.FindChild("SoothSayerButton").gameObject); });
         }
     }
     static void SpiritEvent(MeetingHud __instance)
@@ -133,7 +138,7 @@ public static class SoothSayer_Patch
         }
     }
 
-    static void Postfix(MeetingHud __instance)
+    public static void MeetingHudStartPostfix(MeetingHud __instance)
     {
         Event(__instance);
         SpiritEvent(__instance);
@@ -141,10 +146,14 @@ public static class SoothSayer_Patch
     }
     public static void StartMeeting()
     {
+        var isReverseDecision = Attribute.HauntedWolf.CustomOptionData.IsReverseSheriffDecision.GetBool() && PlayerControl.LocalPlayer.IsHauntedWolf();
         if (PlayerControl.LocalPlayer.IsRole(RoleId.SoothSayer) && RoleClass.SoothSayer.CanFirstWhite)
         {
             RoleClass.SoothSayer.CanFirstWhite = false;
-            List<PlayerControl> WhitePlayers = PlayerControl.AllPlayerControls.ToArray().ToList().FindAll(x => x.IsAlive() && x.IsCrew() && x.PlayerId != CachedPlayer.LocalPlayer.PlayerId);
+            List<PlayerControl> WhitePlayers =
+                isReverseDecision
+                    ? PlayerControl.AllPlayerControls.ToArray().ToList().FindAll(x => x.IsAlive() && !x.IsCrew() && x.PlayerId != CachedPlayer.LocalPlayer.PlayerId)
+                    : PlayerControl.AllPlayerControls.ToArray().ToList().FindAll(x => x.IsAlive() && x.IsCrew() && x.PlayerId != CachedPlayer.LocalPlayer.PlayerId);
             if (WhitePlayers.Count <= 0) { FastDestroyableSingleton<HudManager>.Instance.Chat.AddChat(CachedPlayer.LocalPlayer, ModTranslation.GetString("SoothSayerNoneTarget")); return; }
             PlayerControl Target = WhitePlayers.GetRandom();
             FastDestroyableSingleton<HudManager>.Instance.Chat.AddChat(CachedPlayer.LocalPlayer, Target.Data.PlayerName + ModTranslation.GetString("SoothSayerCrewmateText"));
@@ -152,7 +161,8 @@ public static class SoothSayer_Patch
         else if (PlayerControl.LocalPlayer.IsRole(RoleId.SpiritMedium) && CustomOptionHolder.SpiritMediumIsAutoMode.GetBool())
         {
             if (RoleClass.SpiritMedium.ExilePlayer == null) return;
-            string CrewText = RoleClass.SpiritMedium.ExilePlayer.IsCrew() ? ModTranslation.GetString("SoothSayerCrewmateText") : ModTranslation.GetString("SoothSayerNotCrewmateText");
+            bool isCrew = isReverseDecision ? !RoleClass.SpiritMedium.ExilePlayer.IsCrew() : RoleClass.SpiritMedium.ExilePlayer.IsCrew();
+            string CrewText = isCrew ? ModTranslation.GetString("SoothSayerCrewmateText") : ModTranslation.GetString("SoothSayerNotCrewmateText");
             FastDestroyableSingleton<HudManager>.Instance.Chat.AddChat(CachedPlayer.LocalPlayer, RoleClass.SpiritMedium.ExilePlayer.Data.PlayerName + CrewText);
             RoleClass.SpiritMedium.ExilePlayer = null;
         }

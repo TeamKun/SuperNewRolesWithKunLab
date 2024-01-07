@@ -6,12 +6,25 @@ using Hazel;
 using SuperNewRoles.Helpers;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
+using SuperNewRoles.Replay;
+using SuperNewRoles.Roles.Attribute;
 using SuperNewRoles.Roles.Crewmate;
 using SuperNewRoles.Roles.Impostor;
+using SuperNewRoles.Roles.Impostor.MadRole;
 using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.Role;
+using SuperNewRoles.Roles.RoleBases;
 
 namespace SuperNewRoles;
 
+[HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.SetRole))]
+class SetRoleLogger
+{
+    public static void Postfix(PlayerControl __instance, RoleTypes role)
+    {
+        Logger.Info($"{__instance.Data.PlayerName} の役職が {role} になりました", "SetRole");
+    }
+}
 [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.RpcSetRole))]
 class RpcSetRoleReplacer
 {
@@ -64,6 +77,9 @@ class RoleManagerSelectRolesPatch
     public static bool IsNotDesync = false;
     public static bool Prefix(RoleManager __instance)
     {
+        ReplayLoader.AllRoleSet();
+        if (ReplayManager.IsReplayMode)
+            return false;
         AllRoleSetClass.SetPlayerNum();
         IsNotPrefix = false;
         IsSetRoleRPC = false;
@@ -124,6 +140,15 @@ class RoleManagerSelectRolesPatch
 
             try
             {
+                HauntedWolf.Assign.RandomSelect();
+            }
+            catch (Exception e)
+            {
+                SuperNewRolesPlugin.Logger.LogInfo("RoleSelectError:" + e);
+            }
+
+            try
+            {
                 AllRoleSetClass.QuarreledRandomSelect();
             }
             catch (Exception e)
@@ -139,12 +164,17 @@ class RoleManagerSelectRolesPatch
             {
                 SuperNewRolesPlugin.Logger.LogInfo("RoleSelectError:" + e);
             }
-            FixedUpdate.SetRoleNames();
+            ChangeName.SetRoleNames();
             return false;
         }
         else if (ModeHandler.IsMode(ModeId.BattleRoyal))
         {
             Mode.BattleRoyal.Main.ChangeRole.Postfix();
+            return false;
+        }
+        else if (ModeHandler.IsMode(ModeId.PantsRoyal))
+        {
+            Mode.PantsRoyal.main.AssignRole();
             return false;
         }
         else if (ModeHandler.IsMode(ModeId.CopsRobbers))
@@ -160,6 +190,8 @@ class RoleManagerSelectRolesPatch
     }
     public static void Postfix()
     {
+        if (ReplayManager.IsReplayMode)
+            return;
         IsSetRoleRPC = true;
         IsRPCSetRoleOK = false;
         IsNotPrefix = true;
@@ -255,6 +287,15 @@ class AllRoleSetClass
         }
         if (ModeHandler.IsMode(ModeId.Default))
         {
+            try
+            {
+                HauntedWolf.Assign.RandomSelect();
+            }
+            catch (Exception e)
+            {
+                SuperNewRolesPlugin.Logger.LogInfo("RoleSelectError:" + e);
+            }
+
             try
             {
                 QuarreledRandomSelect();
@@ -595,7 +636,7 @@ class AllRoleSetClass
                 }
 
                 int PlayerCount = (int)GetPlayerCount(selectRoleData);
-                if (selectRoleData is not RoleId.TheFirstLittlePig)
+                if (selectRoleData is not RoleId.TheFirstLittlePig and not RoleId.Pokerface)
                 {
                     if (PlayerCount >= NeutralPlayerNum)
                     {
@@ -720,6 +761,59 @@ class AllRoleSetClass
                             writer.Write(TheThreeLittlePigsPlayer[2].PlayerId);
                             writer.EndRPC();
                             RPCProcedure.SetTheThreeLittlePigsTeam(TheThreeLittlePigsPlayer[0].PlayerId, TheThreeLittlePigsPlayer[1].PlayerId, TheThreeLittlePigsPlayer[2].PlayerId);
+                        }
+                    }
+                }
+                else if (selectRoleData is RoleId.Pokerface)
+                {
+                    if (PlayerCount * 3 >= NeutralPlayerNum)
+                    {
+                        int PokerFaceTeam = (int)Math.Truncate(NeutralPlayerNum / 3f);
+                        for (int i = 1; i <= NeutralPlayerNum; i++)
+                        {
+                            PlayerControl[] PokerFacePlayer = new PlayerControl[3];
+                            for (int i2 = 0; i2 < 3; i2++)
+                            {
+                                PlayerControl p = ModHelpers.GetRandom(CrewmatePlayers);
+                                p.SetRoleRPC(RoleId.Pokerface);
+                                CrewmatePlayers.Remove(p);
+                                PokerFacePlayer[i2] = p;
+                            }
+                            NeutralPlayerNum = NeutralPlayerNum - 3;
+                            Pokerface.RpcSetPokerfaceTeam(PokerFacePlayer);
+                        }
+                        if (0 >= NeutralPlayerNum || 0 >= CrewmatePlayers.Count)
+                            IsNotEndRandomSelect = false;
+                    }
+                    else if (PlayerCount * 3 >= CrewmatePlayers.Count)
+                    {
+                        PlayerControl[] PokerFacePlayer = new PlayerControl[3];
+                        for (int i2 = 0; i2 < 3; i2++)
+                        {
+                            PlayerControl p = ModHelpers.GetRandom(CrewmatePlayers);
+                            p.SetRoleRPC(RoleId.Pokerface);
+                            CrewmatePlayers.Remove(p);
+                            PokerFacePlayer[i2] = p;
+                        }
+                        NeutralPlayerNum = NeutralPlayerNum - 3;
+                        Pokerface.RpcSetPokerfaceTeam(PokerFacePlayer);
+                        if (0 >= NeutralPlayerNum || 0 >= CrewmatePlayers.Count)
+                            IsNotEndRandomSelect = false;
+                    }
+                    else
+                    {
+                        for (int i = 1; i <= PlayerCount; i++)
+                        {
+                            PlayerControl[] PokerFacePlayer = new PlayerControl[3];
+                            for (int i2 = 0; i2 < 3; i2++)
+                            {
+                                PlayerControl p = ModHelpers.GetRandom(CrewmatePlayers);
+                                p.SetRoleRPC(RoleId.Pokerface);
+                                CrewmatePlayers.Remove(p);
+                                PokerFacePlayer[i2] = p;
+                            }
+                            NeutralPlayerNum = NeutralPlayerNum - 3;
+                            Pokerface.RpcSetPokerfaceTeam(PokerFacePlayer);
                         }
                     }
                 }
@@ -918,6 +1012,9 @@ class AllRoleSetClass
     }
     public static float GetPlayerCount(RoleId roleData)
     {
+        OptionInfo optionInfo = OptionInfo.GetOptionInfo(roleData);
+        if (optionInfo != null)
+            return optionInfo.PlayerCount;
         return roleData switch
         {
             RoleId.SoothSayer => CustomOptionHolder.SoothSayerPlayerCount.GetFloat(),
@@ -938,8 +1035,6 @@ class AllRoleSetClass
             RoleId.Shielder => CustomOptionHolder.ShielderPlayerCount.GetFloat(),
             RoleId.Speeder => CustomOptionHolder.SpeederPlayerCount.GetFloat(),
             RoleId.Freezer => CustomOptionHolder.FreezerPlayerCount.GetFloat(),
-            RoleId.NiceGuesser => CustomOptionHolder.NiceGuesserPlayerCount.GetFloat(),
-            RoleId.EvilGuesser => CustomOptionHolder.EvilGuesserPlayerCount.GetFloat(),
             RoleId.Vulture => CustomOptionHolder.VulturePlayerCount.GetFloat(),
             RoleId.NiceScientist => CustomOptionHolder.NiceScientistPlayerCount.GetFloat(),
             RoleId.Clergyman => CustomOptionHolder.ClergymanPlayerCount.GetFloat(),
@@ -994,7 +1089,6 @@ class AllRoleSetClass
             RoleId.DarkKiller => CustomOptionHolder.DarkKillerPlayerCount.GetFloat(),
             RoleId.Seer => CustomOptionHolder.SeerPlayerCount.GetFloat(),
             RoleId.MadSeer => CustomOptionHolder.MadSeerPlayerCount.GetFloat(),
-            RoleId.EvilSeer => CustomOptionHolder.EvilSeerPlayerCount.GetFloat(),
             RoleId.RemoteSheriff => CustomOptionHolder.RemoteSheriffPlayerCount.GetFloat(),
             RoleId.Fox => CustomOptionHolder.FoxPlayerCount.GetFloat(),
             RoleId.TeleportingJackal => CustomOptionHolder.TeleportingJackalPlayerCount.GetFloat(),
@@ -1013,8 +1107,6 @@ class AllRoleSetClass
             RoleId.MayorFriends => CustomOptionHolder.MayorFriendsPlayerCount.GetFloat(),
             RoleId.VentMaker => CustomOptionHolder.VentMakerPlayerCount.GetFloat(),
             RoleId.GhostMechanic => CustomOptionHolder.GhostMechanicPlayerCount.GetFloat(),
-            RoleId.EvilHacker => CustomOptionHolder.EvilHackerPlayerCount.GetFloat(),
-            RoleId.HauntedWolf => CustomOptionHolder.HauntedWolfPlayerCount.GetFloat(),
             RoleId.PositionSwapper => CustomOptionHolder.PositionSwapperPlayerCount.GetFloat(),
             RoleId.Tuna => CustomOptionHolder.TunaPlayerCount.GetFloat(),
             RoleId.Mafia => CustomOptionHolder.MafiaPlayerCount.GetFloat(),
@@ -1044,27 +1136,23 @@ class AllRoleSetClass
             RoleId.SeeThroughPerson => CustomOptionHolder.SeeThroughPersonPlayerCount.GetFloat(),
             RoleId.Photographer => CustomOptionHolder.PhotographerPlayerCount.GetFloat(),
             RoleId.Stefinder => CustomOptionHolder.StefinderPlayerCount.GetFloat(),
-            RoleId.Slugger => CustomOptionHolder.SluggerPlayerCount.GetFloat(),
             RoleId.ShiftActor => ShiftActor.ShiftActorPlayerCount.GetFloat(),
             RoleId.ConnectKiller => CustomOptionHolder.ConnectKillerPlayerCount.GetFloat(),
             RoleId.Cracker => CustomOptionHolder.CrackerPlayerCount.GetFloat(),
             RoleId.NekoKabocha => NekoKabocha.NekoKabochaPlayerCount.GetFloat(),
-            RoleId.WaveCannon => CustomOptionHolder.WaveCannonPlayerCount.GetFloat(),
             RoleId.Doppelganger => CustomOptionHolder.DoppelgangerPlayerCount.GetFloat(),
             RoleId.Werewolf => CustomOptionHolder.WerewolfPlayerCount.GetFloat(),
             RoleId.Knight => Knight.KnightPlayerCount.GetFloat(),
             RoleId.Pavlovsowner => CustomOptionHolder.PavlovsownerPlayerCount.GetFloat(),
             RoleId.WaveCannonJackal => WaveCannonJackal.WaveCannonJackalPlayerCount.GetFloat(),
-            RoleId.Conjurer => Conjurer.PlayerCount.GetFloat(),
             RoleId.Camouflager => CustomOptionHolder.CamouflagerPlayerCount.GetFloat(),
-            RoleId.Cupid => CustomOptionHolder.CupidPlayerCount.GetFloat(),
             RoleId.HamburgerShop => CustomOptionHolder.HamburgerShopPlayerCount.GetFloat(),
             RoleId.Penguin => CustomOptionHolder.PenguinPlayerCount.GetFloat(),
             RoleId.Dependents => CustomOptionHolder.DependentsPlayerCount.GetFloat(),
             RoleId.LoversBreaker => CustomOptionHolder.LoversBreakerPlayerCount.GetFloat(),
             RoleId.Jumbo => CustomOptionHolder.JumboPlayerCount.GetFloat(),
-            RoleId.Worshiper => Roles.Impostor.MadRole.Worshiper.WorshiperPlayerCount.GetFloat(),
-            RoleId.Safecracker => Roles.Neutral.Safecracker.SafecrackerPlayerCount.GetFloat(),
+            RoleId.Worshiper => Worshiper.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Safecracker => Safecracker.SafecrackerPlayerCount.GetFloat(),
             RoleId.FireFox => FireFox.FireFoxPlayerCount.GetFloat(),
             RoleId.Squid => Squid.SquidPlayerCount.GetFloat(),
             RoleId.DyingMessenger => DyingMessenger.DyingMessengerPlayerCount.GetFloat(),
@@ -1078,6 +1166,19 @@ class AllRoleSetClass
             RoleId.Inkya => CustomOptionHolder.TestRolePlayerCount.GetFloat(),
             RoleId.Balancer => Balancer.BalancerPlayerCount.GetFloat(),
             RoleId.Pteranodon => Pteranodon.PteranodonPlayerCount.GetFloat(),
+            RoleId.BlackHatHacker => BlackHatHacker.BlackHatHackerPlayerCount.GetFloat(),
+            RoleId.PoliceSurgeon => PoliceSurgeon.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.MadRaccoon => MadRaccoon.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Moira => Moira.MoiraPlayerCount.GetFloat(),
+            RoleId.JumpDancer => JumpDancer.JumpDancerPlayerCount.GetFloat(),
+            RoleId.Sauner => Sauner.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Bat => Bat.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Rocket => Rocket.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.WellBehaver => WellBehaver.WellBehaverPlayerCount.GetFloat(),
+            RoleId.Pokerface => Pokerface.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Spider => Spider.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Crook => Crook.CustomOptionData.PlayerCount.GetFloat(),
+            RoleId.Frankenstein => Frankenstein.FrankensteinPlayerCount.GetFloat(),
             // プレイヤーカウント
             _ => 1,
         };
@@ -1101,6 +1202,69 @@ class AllRoleSetClass
             }
         }
     }
+    /// <summary>
+    /// 通常の方法で抽選が可能な役職かを判定する。
+    /// </summary>
+    /// <param name="id">判定対象のRoleId</param>
+    /// <returns>true = 通常抽選可能, false = 通常抽選不可 (特殊な抽選, アサイン形式の役) </returns>
+    internal static bool CanRoleIdElected(RoleId id)
+    {
+        return id switch
+        {
+            RoleId.DefaultRole => false,
+            RoleId.GM => false,
+            RoleId.HauntedWolf => false,
+            RoleId.Sidekick or RoleId.SidekickSeer or RoleId.SidekickWaveCannon => true,
+            RoleId.Pavlovsdogs => false,
+            RoleId.ShermansServant => false,
+            RoleId.Revolutionist => false,
+            RoleId.Assassin => false,
+            RoleId.Jumbo => false,
+            RoleId.Sauner => (MapNames)GameManager.Instance.LogicOptions.currentGameOptions.MapId == MapNames.Airship, // エアシップならば選出が可能
+            RoleId.Nun or RoleId.Pteranodon => UnityEngine.Object.FindAnyObjectByType<MovingPlatformBehaviour>(), // ぬーんがあるならば選出が可能
+            RoleId.Werewolf or RoleId.Knight => ModeHandler.IsMode(ModeId.Werewolf),
+            _ => true,
+        };
+    }
+    static List<RoleId> GetTeamChanceList(bool IsOne,TeamRoleType Team)
+    {
+        if (IsOne)
+        {
+            switch (Team)
+            {
+                case TeamRoleType.Crewmate:
+                    return Crewnotonepar;
+                case TeamRoleType.Impostor:
+                    return Imponotonepar;
+                case TeamRoleType.Neutral:
+                    return Neutnotonepar;
+            }
+            return null;
+        }
+        switch (Team)
+        {
+            case TeamRoleType.Crewmate:
+                return Crewonepar;
+            case TeamRoleType.Impostor:
+                return Impoonepar;
+            case TeamRoleType.Neutral:
+                return Neutonepar;
+        }
+        return null;
+    }
+    static void SetChance(int selection, RoleId role, TeamRoleType Team)
+    {
+        if (selection == 0)
+            return;
+        List<RoleId> chanceList = GetTeamChanceList(selection == 10, Team);
+        if (selection == 10)
+        {
+            chanceList.Add(role);
+            return;
+        }
+        for (int i = 0; i < selection; i++)
+            chanceList.Add(role);
+    }
     public static void OneOrNotListSet()
     {
         Impoonepar = new();
@@ -1109,58 +1273,23 @@ class AllRoleSetClass
         Neutnotonepar = new();
         Crewonepar = new();
         Crewnotonepar = new();
-        foreach (IntroData intro in IntroData.IntroList)
+        foreach (IntroData intro in IntroData.Intros.Values)
         {
-            if (intro.RoleId != RoleId.DefaultRole &&
-                intro.RoleId != RoleId.Revolutionist &&
-                intro.RoleId != RoleId.Assassin &&
-                (intro.RoleId != RoleId.Nun || (MapNames)GameManager.Instance.LogicOptions.currentGameOptions.MapId == MapNames.Airship)
-                && !intro.IsGhostRole
-                && ((intro.RoleId != RoleId.Werewolf && intro.RoleId != RoleId.Knight) || ModeHandler.IsMode(ModeId.Werewolf))
-                && intro.RoleId is not RoleId.GM
-                && intro.RoleId != RoleId.Pavlovsdogs
-                && intro.RoleId != RoleId.Jumbo
-                && intro.RoleId != RoleId.ShermansServant)
+            if (intro.IsGhostRole || !CanRoleIdElected(intro.RoleId))
+                continue;
+            var option = IntroData.GetOption(intro.RoleId);
+            if (option == null) continue;
+            var selection = option.GetSelection();
+            SetChance(selection, intro.RoleId, intro.Team);
+        }
+        foreach (RoleInfo roleInfo in RoleInfoManager.RoleInfos.Values)
+        {
+            if (!roleInfo.IsGhostRole && CanRoleIdElected(roleInfo.Role))
             {
-                var option = IntroData.GetOption(intro.RoleId);
+                var option = IntroData.GetOption(roleInfo.Role);
                 if (option == null) continue;
                 var selection = option.GetSelection();
-                if (selection != 0)
-                {
-                    if (selection == 10)
-                    {
-                        switch (intro.Team)
-                        {
-                            case TeamRoleType.Crewmate:
-                                Crewonepar.Add(intro.RoleId);
-                                break;
-                            case TeamRoleType.Impostor:
-                                Impoonepar.Add(intro.RoleId);
-                                break;
-                            case TeamRoleType.Neutral:
-                                Neutonepar.Add(intro.RoleId);
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 1; i <= selection; i++)
-                        {
-                            switch (intro.Team)
-                            {
-                                case TeamRoleType.Crewmate:
-                                    Crewnotonepar.Add(intro.RoleId);
-                                    break;
-                                case TeamRoleType.Impostor:
-                                    Imponotonepar.Add(intro.RoleId);
-                                    break;
-                                case TeamRoleType.Neutral:
-                                    Neutnotonepar.Add(intro.RoleId);
-                                    break;
-                            }
-                        }
-                    }
-                }
+                SetChance(selection, roleInfo.Role, roleInfo.Team);
             }
         }
         SetJumboTicket();

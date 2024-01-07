@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using AmongUs.GameOptions;
+using BepInEx.Unity.IL2CPP.Utils.Collections;
 using HarmonyLib;
 using Hazel;
 using Il2CppInterop.Runtime;
@@ -12,9 +14,12 @@ using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using SuperNewRoles.Helpers;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Crewmate;
 using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.RoleBases;
+using SuperNewRoles.Roles.RoleBases.Interfaces;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -38,6 +43,32 @@ public static class ModHelpers
                     !MeetingHud.Instance &&
                     !ExileController.Instance;
         }
+    }
+    public static TKey GetKeyByValue<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TValue value, TKey defaultvalue = default)
+    {
+        foreach (var pair in dictionary)
+        {
+            if (EqualityComparer<TValue>.Default.Equals(pair.Value, value))
+            {
+                return pair.Key;
+            }
+        }
+        return defaultvalue; // 見つからなかった場合
+    }
+    public static int GetAlivePlayerCount()
+    {
+        int count = 0;
+        foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            if (p.IsAlive()) count++;
+        return count;
+    }
+    public static byte ParseToByte(this string txt)
+    {
+        return byte.Parse(txt.ToString());
+    }
+    public static Ladder LadderById(byte id)
+    {
+        return ShipStatus.Instance.Cast<AirshipStatus>().Ladders.FirstOrDefault((Ladder f) => f.Id == id);
     }
     public static Vent SetTargetVent(List<Vent> untargetablePlayers = null, PlayerControl targetingPlayer = null, bool forceout = false)
     {
@@ -226,7 +257,7 @@ public static class ModHelpers
     public static Dictionary<byte, PlayerControl> AllPlayersById()
     {
         Dictionary<byte, PlayerControl> res = new();
-        foreach (CachedPlayer player in CachedPlayer.AllPlayers)
+        foreach (PlayerControl player in PlayerControl.AllPlayerControls)
             res.Add(player.PlayerId, player);
         return res;
     }
@@ -426,11 +457,21 @@ public static class ModHelpers
         }
         return MurderAttemptResult.PerformKill;
     }
+    public static void AllRun<T>(this List<T> list, Action<T> act)
+    {
+        foreach (T obj in list)
+            act(obj);
+    }
+    public static void AllRun<T>(this T[] array, Action<T> act)
+    {
+        foreach (T obj in array)
+            act(obj);
+    }
     public static void GenerateAndAssignTasks(this PlayerControl player, int numCommon, int numShort, int numLong)
     {
         if (player == null) return;
 
-        List<byte> taskTypeIds = player.GenerateTasks(numCommon, numShort, numLong);
+        List<byte> taskTypeIds = player.GenerateTasks((numCommon, numShort, numLong));
 
         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.UncheckedSetTasks, SendOption.Reliable, -1);
         writer.Write(player.PlayerId);
@@ -438,45 +479,66 @@ public static class ModHelpers
         AmongUsClient.Instance.FinishRpcImmediately(writer);
         RPCProcedure.UncheckedSetTasks(player.PlayerId, taskTypeIds.ToArray());
     }
-    public static List<byte> GenerateTasks(this PlayerControl player, int numCommon, int numShort, int numLong)
+    public static List<byte> GenerateTasks(this PlayerControl player, (int numCommon, int numShort, int numLong) task)
     {
-        if (numCommon + numShort + numLong <= 0)
+        if (task.numCommon + task.numShort + task.numLong <= 0)
         {
-            numShort = 1;
+            task.numShort = 1;
+        }
+        ITaskHolder taskHolder = player.GetRoleBase() as ITaskHolder;
+        if (taskHolder != null)
+        {
+            if (taskHolder.HaveMyNumTask(out (int,int,int)? mynumtask))
+                task = mynumtask.Value;
+            if (taskHolder.AssignTask(out List<byte> mytasks, task))
+                return mytasks;
         }
         if (player.IsRole(RoleId.HamburgerShop) && (ModeHandler.IsMode(ModeId.SuperHostRoles) || !CustomOptionHolder.HamburgerShopChangeTaskPrefab.GetBool()))
         {
-            return Roles.CrewMate.HamburgerShop.GenerateTasks(numCommon + numShort + numLong);
+            return Roles.CrewMate.HamburgerShop.GenerateTasks(task.numCommon + task.numShort + task.numLong);
         }
         else if (player.IsRole(RoleId.Safecracker) && !(Safecracker.SafecrackerChangeTaskPrefab.GetBool() || GameManager.Instance.LogicOptions.currentGameOptions.MapId != (int)MapNames.Airship))
         {
-            return Safecracker.GenerateTasks(numCommon + numShort + numLong);
+            return Safecracker.GenerateTasks(task.numCommon + task.numShort + task.numLong);
         }
         var tasks = new Il2CppSystem.Collections.Generic.List<byte>();
         var hashSet = new Il2CppSystem.Collections.Generic.HashSet<TaskTypes>();
 
         var commonTasks = new Il2CppSystem.Collections.Generic.List<NormalPlayerTask>();
-        foreach (var task in MapUtilities.CachedShipStatus.CommonTasks.OrderBy(x => RoleClass.rnd.Next())) commonTasks.Add(task);
+        foreach (var ct in MapUtilities.CachedShipStatus.CommonTasks.OrderBy(x => RoleClass.rnd.Next())) commonTasks.Add(ct);
 
         var shortTasks = new Il2CppSystem.Collections.Generic.List<NormalPlayerTask>();
-        foreach (var task in MapUtilities.CachedShipStatus.NormalTasks.OrderBy(x => RoleClass.rnd.Next())) shortTasks.Add(task);
+        foreach (var st in MapUtilities.CachedShipStatus.ShortTasks.OrderBy(x => RoleClass.rnd.Next())) shortTasks.Add(st);
 
         var longTasks = new Il2CppSystem.Collections.Generic.List<NormalPlayerTask>();
-        foreach (var task in MapUtilities.CachedShipStatus.LongTasks.OrderBy(x => RoleClass.rnd.Next())) longTasks.Add(task);
+        foreach (var lt in MapUtilities.CachedShipStatus.LongTasks.OrderBy(x => RoleClass.rnd.Next())) longTasks.Add(lt);
 
         int start = 0;
-        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, numCommon, tasks, hashSet, commonTasks);
+        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, task.numCommon, tasks, hashSet, commonTasks);
 
         start = 0;
-        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, numShort, tasks, hashSet, shortTasks);
+        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, task.numShort, tasks, hashSet, shortTasks);
 
         start = 0;
-        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, numLong, tasks, hashSet, longTasks);
+        MapUtilities.CachedShipStatus.AddTasksFromList(ref start, task.numLong, tasks, hashSet, longTasks);
 
-        return tasks.ToArray().ToList();
+        return tasks.ToList();
     }
     static float tien;
-
+    public static string GetStringByCount(char txt, int count)
+    {
+        StringBuilder builder = new();
+        for(int i = 0; i < count; i++)
+        {
+            builder.Append(txt);
+        }
+        return builder.ToString();
+    }
+    public static int GetDigit(int num)
+    {
+        // Mathf.Log10(0)はNegativeInfinityを返すため、別途処理する。
+        return (num == 0) ? 1 : ((int)Mathf.Log10(num) + 1);
+    }
     public static void SetSemiTransparent(this PoolablePlayer player, bool value)
     {
         float alpha = value ? 0.25f : 1f;
@@ -509,7 +571,7 @@ public static class ModHelpers
             console.ValidTasks = new Il2CppReferenceArray<TaskSet>(0);
             var list = ShipStatus.Instance.AllConsoles.ToList();
             list.Add(console);
-            ShipStatus.Instance.AllConsoles = new Il2CppReferenceArray<Console>(list.ToArray());
+            ShipStatus.Instance.AllConsoles = list.ToArray();
         }
         if (console.Image == null)
         {
@@ -552,7 +614,7 @@ public static class ModHelpers
             console.ValidTasks = new(0);
             var list = MapUtilities.CachedShipStatus.AllConsoles.ToList();
             list.Add(console);
-            MapUtilities.CachedShipStatus.AllConsoles = new(list.ToArray());
+            MapUtilities.CachedShipStatus.AllConsoles = list.ToArray();
         }
         if (console.Image == null)
         {
@@ -621,12 +683,99 @@ public static class ModHelpers
     }
     public static InnerNet.ClientData GetClient(this PlayerControl player)
     {
-        var client = AmongUsClient.Instance.allClients.ToArray().Where(cd => cd.Character.PlayerId == player.PlayerId).FirstOrDefault();
+        var client = AmongUsClient.Instance.allClients.FirstOrDefault(cd => cd.Character.PlayerId == player.PlayerId);
         return client;
+    }
+    public static T FirstOrDefault<T>(this Il2CppSystem.Collections.Generic.List<T> list, Func<T, bool> func)
+    {
+        foreach (T obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static T FirstOrDefault<T>(this List<T> list, Func<T, bool> func)
+    {
+        foreach (T obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static T FirstOrDefault<T>(this List<T> list)
+    {
+        if (list.Count > 0)
+            return list[0];
+        return default;
+    }
+    public static T FirstOrDefault<T>(this T[] list)
+    {
+        if (list.Length > 0)
+            return list[0];
+        return default;
+    }
+    public static T FirstOrDefault<T>(this IEnumerable<T> list, Func<T, bool> func)
+    {
+        foreach (T obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static T FirstOrDefault<T>(this IEnumerable<T> list)
+    {
+        foreach (T obj in list)
+            return obj;
+        return default;
+    }
+    public static T FirstOrDefault<T>(this Il2CppArrayBase<T> list, Func<T, bool> func)
+    {
+        foreach (T obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static KeyValuePair<TKey, TValue> FirstOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> list, Func<KeyValuePair<TKey, TValue>, bool> func)
+    {
+        foreach (KeyValuePair<TKey, TValue> obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static void ForEach<T>(this Il2CppArrayBase<T> list, Action<T> func)
+    {
+        foreach (T obj in list)
+            func(obj);
+    }
+    public static bool Any<TKey,TValue>(this Dictionary<TKey,TValue> dict, Func<KeyValuePair<TKey, TValue>, bool> func)
+    {
+        foreach (KeyValuePair<TKey, TValue> obj in dict)
+            if (func(obj))
+                return true;
+        return false;
+    }
+    public static bool Any<T>(this List<T> list, Func<T, bool> func)
+    {
+        if (list == null)
+            return false;
+        foreach (T obj in list)
+            if (func(obj))
+                return true;
+        return false;
+    }
+    public static Il2CppSystem.Collections.Generic.KeyValuePair<TKey, TValue> FirstOrDefault<TKey, TValue>(this Il2CppSystem.Collections.Generic.Dictionary<TKey, TValue> list, Func<Il2CppSystem.Collections.Generic.KeyValuePair<TKey, TValue>, bool> func)
+    {
+        foreach (Il2CppSystem.Collections.Generic.KeyValuePair<TKey, TValue> obj in list)
+            if (func(obj))
+                return obj;
+        return default;
+    }
+    public static T FirstOrDefault<T>(this Il2CppArrayBase<T> list)
+    {
+        foreach (T obj in list)
+            return obj;
+        return default;
     }
     public static List<T> ToList<T>(this Il2CppSystem.Collections.Generic.List<T> list)
     {
-        List<T> newList = new();
+        List<T> newList = new(list.Count);
         foreach (T item in list)
         {
             newList.Add(item);
@@ -635,12 +784,18 @@ public static class ModHelpers
     }
     public static Il2CppSystem.Collections.Generic.List<T> ToIl2CppList<T>(this List<T> list)
     {
-        Il2CppSystem.Collections.Generic.List<T> newList = new();
+        Il2CppSystem.Collections.Generic.List<T> newList = new(list.Count);
         foreach (T item in list)
         {
             newList.Add(item);
         }
         return newList;
+    }
+    public static AudioClip loadAudioClipFromWavResources(string path, string clipName = "UNNAMED_TOR_AUDIO_CLIP")
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        Stream stream = assembly.GetManifestResourceStream(path);
+        return WavLoader.ToAudioClip(stream, clipName);
     }
     public static Dictionary<string, AudioClip> CachedAudioClips = new();
     public static AudioClip loadAudioClipFromResources(string path, string clipName = "UNNAMED_TOR_AUDIO_CLIP")
@@ -764,9 +919,22 @@ public static class ModHelpers
         return null;
     }
 
+    public static SystemTypes GetInRoom(Vector2 pos)
+    {
+        if (ShipStatus.Instance is null) return SystemTypes.Doors;
+        PlainShipRoom room = ShipStatus.Instance.AllRooms.FirstOrDefault(x => x.roomArea.ClosestPoint(pos) == pos);
+        if (room is null) return SystemTypes.Doors;
+        return room.RoomId;
+    }
+
     public static string Cs(Color c, string s)
     {
         return string.Format("<color=#{0:X2}{1:X2}{2:X2}{3:X2}>{4}</color>", CustomOptionHolder.ToByte(c.r), CustomOptionHolder.ToByte(c.g), CustomOptionHolder.ToByte(c.b), CustomOptionHolder.ToByte(c.a), s);
+    }
+    public static T GetRandom<T>(this Il2CppSystem.Collections.Generic.List<T> list)
+    {
+        var indexData = UnityEngine.Random.Range(0, list.Count);
+        return list[indexData];
     }
     public static T GetRandom<T>(this List<T> list)
     {
@@ -863,6 +1031,11 @@ public static class ModHelpers
         return iCall_LoadImage.Invoke(tex.Pointer, il2cppArray.Pointer, markNonReadable);
     }
 
+    public static T GetOrAddComponent<T>(this GameObject obj) where T : Component
+    {
+        T component = obj.GetComponent<T>();
+        return component != null ? component : obj.AddComponent<T>();
+    }
     internal static Dictionary<byte, PlayerControl> IdControlDic = new(); // ClearAndReloadで初期化されます
     internal static Dictionary<int, Vent> VentIdControlDic = new(); // ClearAndReloadで初期化されます
     public static PlayerControl GetPlayerControl(this byte id) => PlayerById(id);
@@ -924,12 +1097,12 @@ public static class ModHelpers
             list.AddRange(c);
     }
 
-    public static string GetRPCNameFromByte(byte callId) =>
+    public static string GetRPCNameFromByte(PlayerControl __instance, byte callId) =>
         Enum.GetName(typeof(RpcCalls), callId) != null ? // RpcCallsに当てはまる
             Enum.GetName(typeof(RpcCalls), callId) :
         Enum.GetName(typeof(CustomRPC), callId) != null ? // CustomRPCに当てはまる
             Enum.GetName(typeof(CustomRPC), callId) :
-        $"{nameof(RpcCalls)}及び、{nameof(CustomRPC)}にも当てはまらない無効な値です:{callId}";
+        $"{nameof(RpcCalls)}及び、{nameof(CustomRPC)}にも当てはまらない無効な値です:{callId}:{__instance.Data.PlayerName}";
     public static bool IsDebugMode() => ConfigRoles.DebugMode.Value && CustomOptionHolder.IsDebugMode.GetBool();
     /// <summary>
     /// 文字列が半角かどうかを判定します
@@ -950,6 +1123,27 @@ public static class ModHelpers
             rates.Add(text);
         }
         return rates.ToArray();
+    }
+    public static bool IsMap(MapNames Map)
+    {
+        if (GameManager.Instance == null)
+            return false;
+        return GameManager.Instance.LogicOptions.currentGameOptions.MapId == (byte)Map;
+    }
+    public static Il2CppSystem.Collections.Generic.IEnumerable<T> IEnumerableToIl2Cpp<T>(this IEnumerable<T> values) => Il2CppSystem.Linq.Enumerable.Cast<T>(values.WrapToIl2Cpp());
+    public static void ResetKillCool(this PlayerControl player, float timer = float.NegativeInfinity)
+    {
+        IGameOptions optdata = SyncSetting.OptionDatas[player].DeepCopy();
+        if (timer == float.NegativeInfinity) timer = SyncSetting.OptionDatas[player].GetFloat(FloatOptionNames.KillCooldown);
+        if (player.AmOwner) player.SetKillTimerUnchecked(timer);
+        else
+        {
+            IGameOptions killcool = optdata.DeepCopy();
+            killcool.SetFloat(FloatOptionNames.KillCooldown, SyncSetting.KillCoolSet(timer * 2));
+            killcool.RpcSyncOption(player.GetClientId(), SendOption.None);
+            player.RpcShowGuardEffect(player);
+            optdata.RpcSyncOption(player.GetClientId(), SendOption.None);
+        }
     }
 }
 public static class CreateFlag

@@ -14,9 +14,8 @@ class PlusGameOptions
 
     public static CustomOption CanGhostSeeVote;
 
-    public static CustomOption IsAlwaysReduceCooldown;
-    public static CustomOption IsAlwaysReduceCooldownExceptInVent;
-    public static CustomOption IsAlwaysReduceCooldownExceptOnTask;
+    public static CustomOption CanNotGhostHaveHaunt;
+    public static CustomOption ReleaseHauntAfterCompleteTasks;
 
     public static CustomOption LadderDead;
     public static CustomOption LadderDeadChance;
@@ -44,9 +43,8 @@ class PlusGameOptions
 
         CanGhostSeeVote = Create(103700, true, CustomOptionType.Generic, "CanGhostSeeVote", true, PlusGameOptionSetting, isHeader: true);
 
-        IsAlwaysReduceCooldown = Create(103800, false, CustomOptionType.Generic, "IsAlwaysReduceCooldown", false, PlusGameOptionSetting, isHeader: true);
-        IsAlwaysReduceCooldownExceptInVent = Create(103801, false, CustomOptionType.Generic, "IsAlwaysReduceCooldownExceptInVent", false, IsAlwaysReduceCooldown);
-        IsAlwaysReduceCooldownExceptOnTask = Create(103802, false, CustomOptionType.Generic, "IsAlwaysReduceCooldownExceptOnTask", true, IsAlwaysReduceCooldown);
+        CanNotGhostHaveHaunt = Create(104700, true, CustomOptionType.Generic, "CanNotGhostHaveHaunt", false, PlusGameOptionSetting, isHeader: true);
+        ReleaseHauntAfterCompleteTasks = Create(104701, true, CustomOptionType.Generic, "ReleaseHauntAfterCompleteTasks", false, CanNotGhostHaveHaunt);
 
         LadderDead = Create(103900, true, CustomOptionType.Generic, "LadderDead", false, PlusGameOptionSetting, isHeader: true);
         LadderDeadChance = Create(103901, true, CustomOptionType.Generic, "LadderDeadChance", rates[1..], LadderDead);
@@ -70,6 +68,8 @@ class PlusGameOptions
     public static bool UseMeetingButton;
 
     public static bool IsGhostSeeVote;
+    public static bool IsNotGhostHaveHaunt;
+    public static bool IsReleasingHauntAfterCompleteTasks;
 
     //千里眼・ズーム関連
     public static bool IsMouseZoom;
@@ -89,6 +89,9 @@ class PlusGameOptions
 
             IsGhostSeeVote = CanGhostSeeVote.GetBool();
 
+            IsNotGhostHaveHaunt = CanNotGhostHaveHaunt.GetBool();
+            IsReleasingHauntAfterCompleteTasks = IsNotGhostHaveHaunt && ReleaseHauntAfterCompleteTasks.GetBool();
+
             //千里眼・ズーム関連
             IsClairvoyantZoom = ZoomOption.GetBool() && ClairvoyantZoom.GetBool();
             IsMouseZoom = ZoomOption.GetBool() && MouseZoom.GetBool();
@@ -99,6 +102,9 @@ class PlusGameOptions
             UseMeetingButton = true;
 
             IsGhostSeeVote = true;
+
+            IsNotGhostHaveHaunt = false;
+            IsReleasingHauntAfterCompleteTasks = false;
 
             //千里眼・ズーム関連
             IsClairvoyantZoom = false;

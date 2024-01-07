@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using AmongUs.Data.Legacy;
 using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using SuperNewRoles.Mode;
 using UnityEngine;
 
 namespace SuperNewRoles.CustomCosmetics;
@@ -10,80 +14,87 @@ namespace SuperNewRoles.CustomCosmetics;
 public class CustomColors
 {
     protected static Dictionary<int, string> ColorStrings = new();
-    public static List<int> lighterColors = new() { 3, 4, 5, 7, 10, 11, 13, 14, 17 };
-    public static uint pickAbleColors = (uint)Palette.ColorNames.Length;
+    public static List<int> LighterColors = new() { 3, 4, 5, 7, 10, 11, 13, 14, 17 };
+    public static readonly uint DefaultPickAbleColors = (uint)Palette.ColorNames.Length;
+    public static uint PickAbleColors = DefaultPickAbleColors;
 
     public enum ColorType
     {
-        Salmon,
-        Bordeaux,
-        Olive,
-        Turqoise,
-        Mint,
-        Lavender,
-        Nougat,
-        Peach,
-        Wasabi,
-        HotPink,
-        Petrol,
-        Lemon,
+        // |:===== 以下明るい色 =====:|
+        Pitchwhite = 18,
+        Posi,
+        Pitchred,
+        XmasRed,
         SignalOrange,
-        Teal,
-        Blurple,
-        Sunrise,
-        Ice,
-        PitchBlack,
-        Darkmagenta,
-        Mintcream,
-        Leaf,
-        Emerald,
+        Peach,
+        LightOrange,
+        HalloweenOrange,
         Brightyellow,
+        Sunrise,
+        Gold,
+        Pitchyellow,
+        Lightgreen,
+        Lemon,
+        Sprout,
+        Pitchgreen,
+        Emerald,
+        Mintcream,
+        Mint,
+        Melon,
+        LightCyan,
+        Teal,
+        Snow,
+        SkyBlue,
+        Ice,
         Darkaqua,
-        Matcha,
-        Pitchwhite,
+        Backblue,
         Darksky,
         Intenseblue,
-        Blueclosertoblack,
-        Sunkengreenishblue,
-        Azi,
-        Pitchred,
         Pitchblue,
-        Pitchgreen,
-        Pitchyellow,
-        Backblue,
-        Mildpurple,
-        Ashishreddishpurplecolor,
-        Melon,
-        Crasyublue,
-        Lightgreen,
-        Azuki,
-        Snow,
+        Lavender,
         LightMagenta,
+        HotPink,
         PeachFlower,
         Plum,
-        SkyBlue,
-        LightCyan,
-        LightOrange,
-        Sprout,
+        Salmon,
+
+        // |:===== 以下暗い色 =====:|
+        PitchBlack,
         Nega,
-        Gold,
-        WineRed,
-        CrazyRed,
-        TokiwaGreen,
-        Posi,
-        XmasRed,
-        XmasGreen,
         CyberRed,
+        WineRed,
+        Azuki,
+        CrazyRed,
+        Nougat,
+        Azi,
+        Olive,
         CyberYellow,
+        Wasabi,
+        Leaf,
+        Matcha,
+        XmasGreen,
         CyberGreen,
+        TokiwaGreen,
+        Petrol,
+        Sunkengreenishblue,
+        Turqoise,
         CyberBlue,
-        CyberPurple
+        Crasyublue,
+        Blueclosertoblack,
+        Blurple,
+        Mildpurple,
+        CyberPurple,
+        Darkmagenta,
+        Ashishreddishpurplecolor,
+        Bordeaux,
     }
 
     private const byte bmv = 255; // byte.MaxValue
 
     // main, shadow, isLighter
-    private static readonly Dictionary<ColorType, (Color32, Color32, bool)> CustomColorData = new() {
+    private static Dictionary<ColorType, (Color32, Color32, bool)> CustomColorData = new() { };
+
+    private static Dictionary<ColorType, (Color32, Color32, bool)> CustomColorDataOld = new() {
             //明るい色(V値が70/100以上、並びはH値順、同じH値の場合はS値が高い方が先、S値も同じ場合はV値が高い方が先)
             { ColorType.Pitchwhite, (new(255, 255, 255, bmv), new(240, 240, 240, bmv), true) }, //H000
             { ColorType.Posi, (new(255, 255, 255, bmv), new(0, 0, 0, bmv), true) }, //H000
@@ -91,7 +102,8 @@ public class CustomColors
             { ColorType.XmasRed, (new(219, 41, 41, bmv), new(255, 255, 255, bmv), true) }, //H000,S074
             { ColorType.SignalOrange, (new(0xF7, 0x44, 0x17, bmv), new(0x9B, 0x2E, 0x0F, bmv), true) }, //H012
             { ColorType.Peach, (new(255, 164, 119, bmv), new(238, 128, 100, bmv), true) }, //H020
-            { ColorType.LightOrange, (new(255, 215, 176, bmv), new(240, 177, 124, bmv), true) }, //H030
+            { ColorType.HalloweenOrange, (new(255, 156, 59, bmv), new(163, 71, 255, bmv), true) }, //H030,S072
+            { ColorType.LightOrange, (new(255, 215, 176, bmv), new(240, 177, 124, bmv), true) }, //H030,S031
             { ColorType.Brightyellow, (new(248, 181, 0, bmv), new(255, 102, 0, bmv), true) }, //H044
             { ColorType.Sunrise, (new(0xFF, 0xCA, 0x19, bmv), new(0xDB, 0x44, 0x42, bmv), true) }, //H046
             { ColorType.Gold, (new(255, 216, 70, bmv), new(226, 168, 13, bmv), true) }, //H047
@@ -158,6 +170,45 @@ public class CustomColors
         List<Color32> shadowList = Enumerable.ToList(Palette.ShadowColors);
         List<CustomColor> colors = new();
         var noLighterColorTemp = new List<KeyValuePair<ColorType, (Color32, Color32, bool)>>();
+        CustomColorData = new();
+
+        var fileName = Assembly.GetExecutingAssembly().GetManifestResourceStream("SuperNewRoles.Resources.Color.csv");
+
+        //csvを開く
+        StreamReader sr = new(fileName);
+
+        var i = 0;
+        //1行ずつ処理
+        while (!sr.EndOfStream)
+        {
+            try
+            {
+                // 行ごとの文字列
+                string line = sr.ReadLine();
+                // 行が空白 戦闘が*なら次の行に
+                if (line == "" || line[0] == '#') continue;
+                if (line[0] == '*') continue;
+
+                //カンマで配列の要素として分ける
+                string[] values = line.Split(',');
+
+                // 配列から辞書に格納する
+                // Mがメイン、Sが影
+                //カラーId,MR,MG,MB,MA,SR,SG,SB,SA,明るいならaでそれ以外ならb
+                CustomColorData.Add((ColorType)(int.Parse(values[0].ToString()) - Palette.PlayerColors.Length),
+                    (new(values[1].ParseToByte(), values[2].ParseToByte(), values[3].ParseToByte(), values[4].ParseToByte())
+                    , new(values[5].ParseToByte(), values[6].ParseToByte(), values[7].ParseToByte(), values[8].ParseToByte()),
+                    values[9] == "a"));
+
+                i++;
+            }
+            catch (Exception e)
+            {
+                Logger.Info(e.ToString());
+            }
+        }
+        CustomColorData = CustomColorDataOld;
+        //CustomColorData = CustomColorDataa;
         foreach (var dic in CustomColorData)
         {
             if (!dic.Value.Item3) // isLighterがfalseなら後ろに入れるため仮Listに追加して次ループ
@@ -183,7 +234,7 @@ public class CustomColors
                 isLighterColor = false
             });
         }
-        pickAbleColors += (uint)colors.Count; // Colors to show in Tab
+        PickAbleColors += (uint)colors.Count; // Colors to show in Tab
         /** Hidden Colors **/
 
         /** Add Colors **/
@@ -195,12 +246,29 @@ public class CustomColors
             colorList.Add(cc.color);
             shadowList.Add(cc.shadow);
             if (cc.isLighterColor)
-                lighterColors.Add(colorList.Count - 1);
+                LighterColors.Add(colorList.Count - 1);
         }
-
+        /*
+        string outputtext = "\n";
+        for (int index = 0; index < Palette.PlayerColors.Length; index++)
+        {
+            Color32 pc = Palette.PlayerColors[index];
+            Color32 sc = Palette.ShadowColors[index];
+            outputtext += $"*{index},{pc.r},{pc.g},{pc.b},{pc.a},{sc.r},{sc.g},{sc.b},{sc.a},{(LighterColors.Contains(index) ? "a" : "b")}\n";
+        }
+        int indexa = Palette.PlayerColors.Length;
+        foreach (var data in CustomColorDataOld)
+        {
+            Color32 pc = data.Value.Item1;
+            Color32 sc = data.Value.Item2;
+            outputtext += $"{(int)data.Key + Palette.PlayerColors.Length},{pc.r},{pc.g},{pc.b},{pc.a},{sc.r},{sc.g},{sc.b},{sc.a},{(data.Value.Item3 ? "a" : "b")}\n";
+            indexa++;
+        }
+        SuperNewRolesPlugin.Logger.LogInfo(outputtext);*/
         Palette.ColorNames = longList.ToArray();
         Palette.PlayerColors = colorList.ToArray();
         Palette.ShadowColors = shadowList.ToArray();
+        
     }
 
     protected internal struct CustomColor
@@ -222,7 +290,7 @@ public class CustomColors
         {
             public static bool Prefix(ref string __result, [HarmonyArgument(0)] StringNames name)
             {
-                if ((int)name >= 50000)
+                if ((int)name >= 50000 && (int)name < 50999)
                 {
                     string text = ColorStrings[(int)name];
                     if (text != null)
@@ -271,7 +339,7 @@ public class CustomColors
             public static void Postfix()
             {
                 if (!needsPatch) return;
-                LegacySaveManager.colorConfig %= pickAbleColors;
+                LegacySaveManager.colorConfig %= PickAbleColors;
                 needsPatch = false;
             }
         }
@@ -279,14 +347,16 @@ public class CustomColors
         private static class PlayerControlCheckColorPatch
         {
             public static bool Prefix(PlayerControl __instance, [HarmonyArgument(0)] byte bodyColor)
-            { // Fix incorrect color assignment
-                uint color = (uint)bodyColor;
-                if (IsTaken(__instance, color) || color >= Palette.PlayerColors.Length)
+            {
+                uint pickAble = CustomOptionHolder.ProhibitModColor.GetBool() || ModeHandler.IsMode(ModeId.SuperHostRoles, false) ? DefaultPickAbleColors : PickAbleColors;
+                // Fix incorrect color assignment
+                uint color = bodyColor;
+                if (IsTaken(__instance, color) || color >= pickAble)
                 {
                     int num = 0;
-                    while (num++ < 50 && (color >= pickAbleColors || IsTaken(__instance, color)))
+                    while (num++ < 50 && (color >= pickAble || IsTaken(__instance, color)))
                     {
-                        color = (color + 1) % pickAbleColors;
+                        color = (color + 1) % pickAble;
                     }
                 }
                 //Logger.Info(color.ToString() + "をセット:" + isTaken(__instance, color).ToString()+":"+ (color >= Palette.PlayerColors.Length));

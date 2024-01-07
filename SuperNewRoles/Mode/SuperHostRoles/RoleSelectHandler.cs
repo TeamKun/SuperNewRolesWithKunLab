@@ -1,12 +1,24 @@
 using System.Collections.Generic;
 using AmongUs.GameOptions;
+using SuperNewRoles.Replay;
 using SuperNewRoles.Roles;
+using SuperNewRoles.Roles.Crewmate;
+using SuperNewRoles.Roles.Impostor;
+using SuperNewRoles.Roles.Impostor.MadRole;
+using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.RoleBases.Interfaces;
 
 namespace SuperNewRoles.Mode.SuperHostRoles;
 
 public static class RoleSelectHandler
 {
     public static CustomRpcSender sender = null;
+    /// <summary>
+    /// 追放メッセージを表記する為のBot
+    /// </summary>
+    /// <value>現在はパン屋Bot 又は 詐欺師Botのみ</value>
+    public static PlayerControl ConfirmImpostorSecondTextBot = null;
+
     public static CustomRpcSender RoleSelect(CustomRpcSender send)
     {
         sender = send;
@@ -23,6 +35,7 @@ public static class RoleSelectHandler
     }
     public static void SpawnBots()
     {
+        if (ReplayManager.IsReplayMode) return;
         if (ModeHandler.IsMode(ModeId.SuperHostRoles) && !ModeHandler.IsMode(ModeId.HideAndSeek, ModeId.VanillaHns))
         {
             int impostor = GameManager.Instance.LogicOptions.currentGameOptions.NumImpostors;
@@ -56,7 +69,7 @@ public static class RoleSelectHandler
                 CustomOptionHolder.DemonOption.GetSelection() != 0 ||
                 CustomOptionHolder.ToiletFanOption.GetSelection() != 0 ||
                 CustomOptionHolder.NiceButtonerOption.GetSelection() != 0 ||
-                SuperNewRoles.Roles.Impostor.MadRole.Worshiper.WorshiperOption.GetSelection() != 0)
+                Worshiper.CustomOptionData.Option.GetSelection() != 0)
             {
                 PlayerControl bot1 = BotManager.Spawn("暗転対策BOT1");
                 bot1.RpcSetRole(RoleTypes.Impostor);
@@ -85,14 +98,21 @@ public static class RoleSelectHandler
                     crewmate++;
                 }
             }
-            if (CustomOptionHolder.BakeryOption.GetSelection() != 0)
+            ConfirmImpostorSecondTextBot = null; // 2つ目の追放メッセージ用Botの初期化
+            if (CustomOptionHolder.BakeryOption.GetSelection() != 0 || Crook.CustomOptionData.Option.GetSelection() != 0)
             {
-                BotManager.Spawn("パン屋BOT").Exiled();
+                string name = CustomOptionHolder.BakeryOption.GetSelection() != 0 ? "パン屋BOT" : "詐欺師BOT";
+                ConfirmImpostorSecondTextBot = BotManager.Spawn(name);
+                ConfirmImpostorSecondTextBot.Exiled();
             }
             else if (CustomOptionHolder.AssassinAndMarlinOption.GetSelection() != 0)
             {
                 BotManager.Spawn(ModTranslation.GetString("AssassinAndMarlinName") + "BOT").Exiled();
             }
+        }
+        else if (ModeHandler.IsMode(ModeId.BattleRoyal))
+        {
+            BattleRoyal.Main.SpawnBots();
         }
     }
     public static void SetCustomRoles()
@@ -122,15 +142,20 @@ public static class RoleSelectHandler
         if (RoleClass.BlackCat.IsUseVent) SetVanillaRole(RoleClass.BlackCat.BlackCatPlayer, RoleTypes.Engineer);
         if (RoleClass.MadSeer.IsUseVent) SetVanillaRole(RoleClass.MadSeer.MadSeerPlayer, RoleTypes.Engineer);
         if (RoleClass.SeerFriends.IsUseVent) SetVanillaRole(RoleClass.SeerFriends.SeerFriendsPlayer, RoleTypes.Engineer);
+        if (Pokerface.CustomOptionData.CanUseVent.GetBool()) SetVanillaRole(Pokerface.RoleData.Player, RoleTypes.Engineer);
         /*============エンジニアに役職設定============*/
 
+        /*============科学者に役職設定============*/
+        if (PoliceSurgeon.RoleData.HaveVital) SetVanillaRole(PoliceSurgeon.RoleData.Player, RoleTypes.Scientist, false);
+        /*============科学者に役職設定============*/
 
         /*============シェイプシフターDesync============*/
         SetRoleDesync(RoleClass.Arsonist.ArsonistPlayer, RoleTypes.Shapeshifter);
         SetRoleDesync(RoleClass.RemoteSheriff.RemoteSheriffPlayer, RoleTypes.Shapeshifter);
         SetRoleDesync(RoleClass.ToiletFan.ToiletFanPlayer, RoleTypes.Shapeshifter);
         SetRoleDesync(RoleClass.NiceButtoner.NiceButtonerPlayer, RoleTypes.Shapeshifter);
-        SetRoleDesync(SuperNewRoles.Roles.Impostor.MadRole.Worshiper.WorshiperPlayer, RoleTypes.Shapeshifter);
+        SetRoleDesync(Worshiper.RoleData.Player, RoleTypes.Shapeshifter);
+        SetRoleDesync(MadRaccoon.RoleData.Player, RoleTypes.Shapeshifter);
         /*============シェイプシフターDesync============*/
 
 
@@ -141,8 +166,18 @@ public static class RoleSelectHandler
         SetVanillaRole(RoleClass.SuicideWisher.SuicideWisherPlayer, RoleTypes.Shapeshifter, false);
         SetVanillaRole(RoleClass.Doppelganger.DoppelggerPlayer, RoleTypes.Shapeshifter, false);
         SetVanillaRole(RoleClass.Camouflager.CamouflagerPlayer, RoleTypes.Shapeshifter, false);
-        SetVanillaRole(RoleClass.EvilSeer.EvilSeerPlayer, RoleTypes.Shapeshifter, false);
         /*============シェイプシフター役職設定============*/
+
+        foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+        {
+            if (player is ISupportSHR playerSHR)
+            {
+                if (playerSHR.IsDesync)
+                    SetRoleDesync(player, playerSHR.DesyncRole);
+                else
+                    SetVanillaRole(player, playerSHR.RealRole, playerSHR.IsRealRoleNotModOnly);
+            }
+        }
 
         foreach (PlayerControl Player in RoleClass.Egoist.EgoistPlayer)
         {
@@ -222,30 +257,34 @@ public static class RoleSelectHandler
     {
         foreach (PlayerControl Player in player)
         {
-            Logger.Info($"{Player.name}({Player.GetRole()})=>{roleTypes}を実行", "SetRoleDesync");
-            if (!Player.IsMod())
+            SetRoleDesync(Player, roleTypes);
+        }
+    }
+    public static void SetRoleDesync(PlayerControl Player, RoleTypes roleTypes)
+    {
+        Logger.Info($"{Player.name}({Player.GetRole()})=>{roleTypes}を実行", "SetRoleDesync");
+        if (!Player.IsMod())
+        {
+            int PlayerCID = Player.GetClientId();
+            sender.RpcSetRole(Player, roleTypes, PlayerCID);
+            foreach (var pc in PlayerControl.AllPlayerControls)
             {
-                int PlayerCID = Player.GetClientId();
-                sender.RpcSetRole(Player, roleTypes, PlayerCID);
-                foreach (var pc in PlayerControl.AllPlayerControls)
-                {
-                    if (pc.PlayerId == Player.PlayerId) continue;
-                    sender.RpcSetRole(pc, RoleTypes.Scientist, PlayerCID);
-                }
-                //他視点で科学者にするループ
-                foreach (var pc in PlayerControl.AllPlayerControls)
-                {
-                    if (pc.PlayerId == Player.PlayerId) continue;
-                    if (pc.PlayerId == 0) Player.SetRole(RoleTypes.Scientist); //ホスト視点用
-                    else sender.RpcSetRole(Player, RoleTypes.Scientist, pc.GetClientId());
-                }
+                if (pc.PlayerId == Player.PlayerId) continue;
+                sender.RpcSetRole(pc, RoleTypes.Scientist, PlayerCID);
             }
-            else
+            //他視点で科学者にするループ
+            foreach (var pc in PlayerControl.AllPlayerControls)
             {
-                //Modクライアントは代わりに普通のクルーにする
-                Player.SetRole(RoleTypes.Crewmate); //Modクライアント視点用
-                sender.RpcSetRole(Player, RoleTypes.Crewmate);
+                if (pc.PlayerId == Player.PlayerId) continue;
+                if (pc.PlayerId == 0) Player.SetRole(RoleTypes.Scientist); //ホスト視点用
+                else sender.RpcSetRole(Player, RoleTypes.Scientist, pc.GetClientId());
             }
+        }
+        else
+        {
+            //Modクライアントは代わりに普通のクルーにする
+            Player.SetRole(RoleTypes.Crewmate); //Modクライアント視点用
+            sender.RpcSetRole(Player, RoleTypes.Crewmate);
         }
     }
     /// <summary>
@@ -258,14 +297,24 @@ public static class RoleSelectHandler
     {
         foreach (PlayerControl p in player)
         {
-            if (p.IsMod() && isNotModOnly)
-            {
-                Logger.Info($"{p.name}({p.GetRole()})=>{roleTypes}Mod導入者かつ、非導入者のみなので破棄", "SetVanillaRole");
-                return;
-            }
-            Logger.Info($"{p.name}({p.GetRole()})=>{roleTypes}を実行", "SetVanillaRole");
-            sender.RpcSetRole(p, roleTypes);
+            SetVanillaRole(p, roleTypes, isNotModOnly);
         }
+    }
+    /// <summary>
+    /// バニラ役職をセットする
+    /// </summary>
+    /// <param name="p">ターゲット</param>
+    /// <param name="roleTypes">セットする役職</param>
+    /// <param name="isNotModOnly">非Mod導入者のみか(概定はtrue)</param>
+    public static void SetVanillaRole(PlayerControl p, RoleTypes roleTypes, bool isNotModOnly = true)
+    {
+        if (p.IsMod() && isNotModOnly)
+        {
+            Logger.Info($"{p.name}({p.GetRole()})=>{roleTypes}Mod導入者かつ、非導入者のみなので破棄", "SetVanillaRole");
+            return;
+        }
+        Logger.Info($"{p.name}({p.GetRole()})=>{roleTypes}を実行", "SetVanillaRole");
+        sender.RpcSetRole(p, roleTypes);
     }
     public static void CrewOrImpostorSet()
     {
@@ -289,17 +338,9 @@ public static class RoleSelectHandler
         List<RoleId> Crewonepar = new();
         List<RoleId> Crewnotonepar = new();
 
-        foreach (IntroData intro in IntroData.IntroList)
+        foreach (IntroData intro in IntroData.Intros.Values)
         {
-            if (intro.RoleId != RoleId.DefaultRole &&
-                intro.RoleId != RoleId.Revolutionist &&
-                intro.RoleId != RoleId.Assassin &&
-                (intro.RoleId != RoleId.Nun || (MapNames)GameManager.Instance.LogicOptions.currentGameOptions.MapId == MapNames.Airship)
-                && !intro.IsGhostRole
-                && ((intro.RoleId != RoleId.Werewolf && intro.RoleId != RoleId.Knight) || ModeHandler.IsMode(ModeId.Werewolf))
-                && intro.RoleId is not RoleId.GM
-                && intro.RoleId != RoleId.Pavlovsdogs
-                && intro.RoleId != RoleId.Jumbo)
+            if (!intro.IsGhostRole && AllRoleSetClass.CanRoleIdElected(intro.RoleId))
             {
                 var option = IntroData.GetOption(intro.RoleId);
                 if (option == null || !option.isSHROn) continue;

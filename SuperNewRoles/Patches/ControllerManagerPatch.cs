@@ -1,3 +1,4 @@
+using System.IO;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using Hazel;
@@ -5,7 +6,9 @@ using Il2CppSystem;
 using SuperNewRoles.Helpers;
 using SuperNewRoles.KunLab;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Mode.BattleRoyal;
 using SuperNewRoles.Mode.SuperHostRoles;
+using SuperNewRoles.Replay;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Neutral;
 using UnityEngine;
@@ -42,8 +45,14 @@ class ControllerManagerUpdatePatch
 {
     static readonly (int, int)[] resolutions = { (480, 270), (640, 360), (800, 450), (1280, 720), (1600, 900), (1920, 1080) };
     static int resolutionIndex = 0;
-    public static void Postfix(PlayerPhysics __instance)
+    static AudioSource source;
+    public static void Postfix()
     {
+        if (source != null)
+        {
+            Logger.Info(source.time.ToString(),"a");
+            Logger.Info(source.timeSamples.ToString(),"b");
+        }
         //解像度変更
         if (Input.GetKeyDown(KeyCode.F9))
         {
@@ -53,7 +62,7 @@ class ControllerManagerUpdatePatch
         }
 
         //labmemo その時点までのlogを切り出す
-        if (Input.GetKey(KeyCode.RightShift) && Input.GetKeyDown(KeyCode.O))
+        if (ModHelpers.GetManyKeyDown(new[] { KeyCode.S, KeyCode.LeftShift, KeyCode.RightShift }))
         {
             string via = "KeyCommandVia";
             Logger.SaveLog(via, via);
@@ -83,7 +92,12 @@ class ControllerManagerUpdatePatch
             if (ModHelpers.GetManyKeyDown(new[] { KeyCode.M, KeyCode.LeftShift, KeyCode.RightShift }) && RoleClass.IsMeeting)
             {
                 if (MeetingHud.Instance != null)
-                    MeetingHud.Instance.RpcClose();
+                {
+                    if (ModeHandler.IsMode(ModeId.BattleRoyal))
+                        SelectRoleSystem.OnEndSetRole();
+                    else
+                        MeetingHud.Instance.RpcClose();
+                }
             }
         }
 
@@ -93,7 +107,8 @@ class ControllerManagerUpdatePatch
             // Spawn dummys
             if (Input.GetKeyDown(KeyCode.G))
             {
-                PlayerControl bot = BotManager.Spawn(PlayerControl.LocalPlayer.NameText().text);
+                PlayerControl bot = BotManager.Spawn(PlayerControl.LocalPlayer.NameText().text, false);
+                Logger.Info(EOSManager.Instance.UserIDToken);
 
                 bot.NetTransform.SnapTo(PlayerControl.LocalPlayer.transform.position);
                 //new LateTask(() => bot.NetTransform.RpcSnapTo(new Vector2(0, 15)), 0.2f, "Bot TP Task");
@@ -104,8 +119,22 @@ class ControllerManagerUpdatePatch
             //ここにデバッグ用のものを書いてね
             if (Input.GetKeyDown(KeyCode.I))
             {
-                AmongUsClient.Instance.ExitGame(DisconnectReasons.Custom);
-                AmongUsClient.Instance.LastCustomDisconnect = "<size=0%>MOD</size><size=150%>" + "公開からの誘導はおやめください" + "</size>\n\nMODからこのアカウントのゲームプレイに制限をかけています。\nBANコード:" + "0010" + "\n理由：" + "公開部屋から誘導してMODをプレイしていたため" + "\n期間：" + "永久";
+                source = SoundManager.Instance.PlaySound(ContentManager.GetContent<AudioClip>("Sauner_SaunaBGM.wav"), true);
+                return;
+                HudManager.Instance.ShowPopUp("スマソ。無理やわ。");
+                return;
+                string filePath = Path.GetDirectoryName(Application.dataPath) + @"\SuperNewRoles\Replay\";
+                DirectoryInfo d = new(filePath);
+                Logger.Info("FileName:" + d.GetFiles()[0].Name);
+                (ReplayData replay, bool IsSuc) = ReplayReader.ReadReplayDataFirst(d.GetFiles()[0].Name);
+                ReplayManager.IsReplayMode = true;
+                Logger.Info($"IsSuc:{IsSuc}");
+                if (IsSuc)
+                {
+                    Logger.Info($"PlayerCount:{replay.AllPlayersCount}");
+                    Logger.Info($"Mode:{replay.CustomMode}");
+                    Logger.Info($"Time:{replay.RecordTime.ToString()}");
+                }
             }
             if (Input.GetKeyDown(KeyCode.P))
             {
@@ -129,7 +158,15 @@ class ControllerManagerUpdatePatch
             }
             if (Input.GetKeyDown(KeyCode.N))
             {
-                ModHelpers.PlayerById(1).RpcMurderPlayer(PlayerControl.LocalPlayer);//ModHelpers.PlayerById(2));
+                ModHelpers.PlayerById(1).RpcMurderPlayer(PlayerControl.LocalPlayer, true);//ModHelpers.PlayerById(2));
+            }
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                Logger.Info("Test Option Set", "Test");
+                IGameOptions options = GameOptionsManager.Instance.CurrentGameOptions.DeepCopy();
+                options.SetFloat(FloatOptionNames.KillCooldown, 10f);
+                options.SetFloat(FloatOptionNames.CrewLightMod, 10f);
+                GameManager.Instance.LogicOptions.SetGameOptions(options);
             }
             if (Input.GetKeyDown(KeyCode.F10))
             {

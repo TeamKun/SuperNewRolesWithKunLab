@@ -20,6 +20,7 @@ public class Safecracker
     public static CustomOption SafecrackerUseSaboTask;
     public static CustomOption SafecrackerIsImpostorLightTask;
     public static CustomOption SafecrackerCheckImpostorTask;
+    public static CustomOption SafecrackerIsSettingNumberOfUniqueTasks;
     public static CustomOption SafecrackerCommonTask;
     public static CustomOption SafecrackerShortTask;
     public static CustomOption SafecrackerLongTask;
@@ -46,9 +47,10 @@ public class Safecracker
         SafecrackerUseSaboTask = CustomOption.Create(OptionId + 7, false, CustomOptionType.Neutral, "SafecrackerUseSaboTaskSetting", CustomRates, SafecrackerOption);
         SafecrackerIsImpostorLightTask = CustomOption.Create(OptionId + 8, false, CustomOptionType.Neutral, "SafecrackerIsImpostorLightTaskSetting", CustomRates, SafecrackerOption);
         SafecrackerCheckImpostorTask = CustomOption.Create(OptionId + 9, false, CustomOptionType.Neutral, "SafecrackerCheckImpostorTaskSetting", CustomRates, SafecrackerOption);
-        SafecrackerCommonTask = CustomOption.Create(OptionId + 10, false, CustomOptionType.Neutral, "GameCommonTasks", 1f, 0f, 300f, 1f, SafecrackerOption);
-        SafecrackerShortTask = CustomOption.Create(OptionId + 11, false, CustomOptionType.Neutral, "GameShortTasks", 1f, 0f, 300f, 1f, SafecrackerOption);
-        SafecrackerLongTask = CustomOption.Create(OptionId + 12, false, CustomOptionType.Neutral, "GameLongTasks", 1f, 0f, 300f, 1f, SafecrackerOption);
+        SafecrackerIsSettingNumberOfUniqueTasks = CustomOption.Create(OptionId + 14, false, CustomOptionType.Neutral, "IsSettingNumberOfUniqueTasks", true, SafecrackerOption);
+        SafecrackerCommonTask = CustomOption.Create(OptionId + 10, false, CustomOptionType.Neutral, "GameCommonTasks", 1f, 0f, 300f, 1f, SafecrackerIsSettingNumberOfUniqueTasks);
+        SafecrackerShortTask = CustomOption.Create(OptionId + 11, false, CustomOptionType.Neutral, "GameShortTasks", 1f, 0f, 300f, 1f, SafecrackerIsSettingNumberOfUniqueTasks);
+        SafecrackerLongTask = CustomOption.Create(OptionId + 12, false, CustomOptionType.Neutral, "GameLongTasks", 1f, 0f, 300f, 1f, SafecrackerIsSettingNumberOfUniqueTasks);
         SafecrackerChangeTaskPrefab = CustomOption.Create(OptionId + 13, false, CustomOptionType.Neutral, "SafecrackerChangeTaskPrefabSetting", false, SafecrackerOption);
     }
 
@@ -61,10 +63,7 @@ public class Safecracker
     public static void ClearAndReload()
     {
         SafecrackerPlayer = new();
-        int num = SafecrackerCommonTask.GetInt() + SafecrackerShortTask.GetInt() + SafecrackerLongTask.GetInt();
-        AllTask = num != 0 ? num : GameOptionsManager.Instance.CurrentGameOptions.GetInt(Int32OptionNames.NumCommonTasks) +
-                                   GameOptionsManager.Instance.CurrentGameOptions.GetInt(Int32OptionNames.NumShortTasks) +
-                                   GameOptionsManager.Instance.CurrentGameOptions.GetInt(Int32OptionNames.NumLongTasks);
+        AllTask = SelectTask.GetTotalTasks(RoleId.Safecracker);
         TriggerPlayer = null;
         KillGuardCount = new();
         ExiledGuardCount = new();
@@ -151,7 +150,7 @@ public class Safecracker
                     PlayerTask task = __instance.FindTask(CachedPlayer.LocalPlayer);
                     Logger.Info($"タスクタイプ : {task.TaskType}, タスクID : {(int)task.TaskType}", "Task Data");
                     tempminigame = task.MinigamePrefab;
-                    if (task.TaskType is TaskTypes.FixLights or TaskTypes.RestoreOxy or TaskTypes.ResetReactor or TaskTypes.ResetSeismic or TaskTypes.FixComms or TaskTypes.StopCharles) return;
+                    if (task.TaskType is TaskTypes.FixLights or TaskTypes.RestoreOxy or TaskTypes.ResetReactor or TaskTypes.ResetSeismic or TaskTypes.FixComms or TaskTypes.StopCharles or TaskTypes.MushroomMixupSabotage) return;
                     ShipStatus ship = GameManager.Instance.LogicOptions.currentGameOptions.MapId == (int)MapNames.Airship ? ShipStatus.Instance : Agartha.MapLoader.Airship;
                     task.MinigamePrefab = ship.LongTasks.FirstOrDefault(x => x.TaskType == TaskTypes.UnlockSafe).MinigamePrefab;
                 }

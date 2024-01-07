@@ -46,14 +46,13 @@ class MeetingUpdatePatch
         }
     }
 }
-[HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.UpdateButtons))]
 class Meetingsheriff_updatepatch
 {
-    static void Postfix(MeetingHud __instance)
+    internal static void UpdateButtonsPostfix(MeetingHud __instance)
     {
-        if (PlayerControl.LocalPlayer.IsRole(RoleId.MeetingSheriff) && PlayerControl.LocalPlayer.IsDead())
+        if (PlayerControl.LocalPlayer.IsDead())
         {
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("ShootButton") != null) Object.Destroy(x.transform.FindChild("ShootButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("ShootButton") != null) Object.Destroy(x.transform.FindChild("ShootButton").gameObject); });
         }
     }
     public static void Change()
@@ -94,25 +93,26 @@ class MeetingSheriff_Patch
     static void MeetingSheriffOnClick(int Index, MeetingHud __instance)
     {
         var Target = ModHelpers.PlayerById(__instance.playerStates[Index].TargetPlayerId);
-        var misfire = !Sheriff.IsSheriffRolesKill(CachedPlayer.LocalPlayer, Target);
-        var alwaysKill = !Sheriff.IsSheriffRolesKill(CachedPlayer.LocalPlayer, Target) && CustomOptionHolder.MeetingSheriffAlwaysKills.GetBool();
+        (var killResult, var suicideResult) = Sheriff.SheriffKillResult(CachedPlayer.LocalPlayer, Target);
+
         var TargetID = Target.PlayerId;
         var LocalID = CachedPlayer.LocalPlayer.PlayerId;
 
-        RPCProcedure.MeetingSheriffKill(LocalID, TargetID, misfire, alwaysKill);
-
+        RPCProcedure.MeetingSheriffKill(LocalID, TargetID, killResult.Item1, suicideResult.Item1);
         MessageWriter killWriter = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.MeetingSheriffKill, SendOption.Reliable, -1);
         killWriter.Write(LocalID);
         killWriter.Write(TargetID);
-        killWriter.Write(misfire);
-        killWriter.Write(alwaysKill);
+        killWriter.Write(killResult.Item1);
+        killWriter.Write(suicideResult.Item1);
         AmongUsClient.Instance.FinishRpcImmediately(killWriter);
-        FinalStatusClass.RpcSetFinalStatus(misfire ? CachedPlayer.LocalPlayer : Target, misfire ? FinalStatus.MeetingSheriffMisFire : (Target.IsRole(RoleId.HauntedWolf) ? FinalStatus.MeetingSheriffHauntedWolfKill : FinalStatus.MeetingSheriffKill));
-        if (alwaysKill) FinalStatusClass.RpcSetFinalStatus(Target, FinalStatus.SheriffInvolvedOutburst);
+
+        if (killResult.Item1) FinalStatusClass.RpcSetFinalStatus(Target, killResult.Item2);
+        if (suicideResult.Item1) FinalStatusClass.RpcSetFinalStatus(CachedPlayer.LocalPlayer, suicideResult.Item2);
+
         RoleClass.MeetingSheriff.KillMaxCount--;
-        if (RoleClass.MeetingSheriff.KillMaxCount <= 0 || !RoleClass.MeetingSheriff.OneMeetingMultiKill || misfire)
+        if (RoleClass.MeetingSheriff.KillMaxCount <= 0 || !RoleClass.MeetingSheriff.OneMeetingMultiKill || suicideResult.Item1)
         {
-            __instance.playerStates.ToList().ForEach(x => { if (x.transform.FindChild("ShootButton") != null) Object.Destroy(x.transform.FindChild("ShootButton").gameObject); });
+            __instance.playerStates.ForEach(x => { if (x.transform.FindChild("ShootButton") != null) Object.Destroy(x.transform.FindChild("ShootButton").gameObject); });
         }
 
     }
@@ -145,7 +145,7 @@ class MeetingSheriff_Patch
     {
         if (AmongUsClient.Instance.AmHost)
         {
-            PlayerAnimation.PlayerAnimations.All(x => { x.RpcAnimation(RpcAnimationType.Stop); return false; });
+            PlayerAnimation.PlayerAnimations.Values.All(x => { x.RpcAnimation(RpcAnimationType.Stop); return false; });
         }
         LadderDead.Reset();
         if (ModeHandler.IsMode(ModeId.SuperHostRoles))
@@ -155,7 +155,7 @@ class MeetingSheriff_Patch
 
         MeetingUpdatePatch.IsFlag = false;
         MeetingUpdatePatch.IsSHRFlag = false;
-        if (!ModeHandler.IsMode(ModeId.SuperHostRoles) && PlayerControl.AllPlayerControls.Count > 15)
+        if (!ModeHandler.IsMode(ModeId.SuperHostRoles, ModeId.BattleRoyal) && PlayerControl.AllPlayerControls.Count > 15)
         {
             MeetingUpdatePatch.IsFlag = true;
             Meetingsheriff_updatepatch.PlayerVoteAreas = new List<PlayerVoteArea>();

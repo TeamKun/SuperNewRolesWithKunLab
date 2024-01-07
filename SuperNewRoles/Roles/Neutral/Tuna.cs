@@ -10,13 +10,13 @@ public class Tuna
         if (RoleClass.IsMeeting) return;
         if (ModeHandler.IsMode(ModeId.Default))
         {
-            if (PlayerControl.LocalPlayer.IsAlive() && PlayerControl.LocalPlayer.IsRole(RoleId.Tuna) && RoleClass.Tuna.IsMeetingEnd)
+            if (PlayerControl.LocalPlayer.IsAlive() && PlayerControl.LocalPlayer.IsRole(RoleId.Tuna) && RoleClass.IsFirstMeetingEnd)
             {
                 if (RoleClass.Tuna.Position[CachedPlayer.LocalPlayer.PlayerId] == (Vector2)CachedPlayer.LocalPlayer.transform.position)
                 {
                     if (RoleClass.Tuna.Timer <= 0.1f)
                     {
-                        CachedPlayer.LocalPlayer.PlayerControl.RpcMurderPlayer(CachedPlayer.LocalPlayer.PlayerControl);
+                        CachedPlayer.LocalPlayer.PlayerControl.RpcMurderPlayer(CachedPlayer.LocalPlayer.PlayerControl, true);
                         PlayerControl.LocalPlayer.RpcSetFinalStatus(FinalStatus.TunaSelfDeath);
                     }
                     RoleClass.Tuna.Timer -= Time.deltaTime;
@@ -32,14 +32,14 @@ public class Tuna
         {
             foreach (PlayerControl p in RoleClass.Tuna.TunaPlayer)
             {
-                if (p.IsAlive() && RoleClass.Tuna.IsMeetingEnd)
+                if (p.IsAlive() && RoleClass.IsFirstMeetingEnd)
                 {
                     if (RoleClass.Tuna.Position[p.PlayerId] == (Vector2)p.transform.position)
                     {
                         RoleClass.Tuna.Timers[p.PlayerId] -= Time.deltaTime;
                         if (RoleClass.Tuna.Timers[p.PlayerId] <= 0)
                         {
-                            p.RpcMurderPlayer(p);
+                            p.RpcMurderPlayer(p, true);
                         }
                     }
                     else

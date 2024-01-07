@@ -10,10 +10,11 @@ namespace SuperNewRoles.Patches;
 
 class TaskCount
 {
-    [HarmonyPatch(typeof(NormalPlayerTask), nameof(NormalPlayerTask.PickRandomConsoles))]
+    public static PlayerData<bool> IsClearTaskPlayer;
+    [HarmonyPatch(typeof(NormalPlayerTask), nameof(NormalPlayerTask.PickRandomConsoles), new Type[] { typeof(TaskTypes), typeof(Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>) })]
     class NormalPlayerTaskPickRandomConsolesPatch
     {
-        static void Postfix(NormalPlayerTask __instance, TaskTypes taskType, byte[] consoleIds)
+        static void Postfix(NormalPlayerTask __instance, TaskTypes taskType)
         {
             if (taskType != TaskTypes.FixWiring || !ModeHandler.IsMode(ModeId.Default) || !MapOption.MapOption.WireTaskIsRandom) return;
             List<Console> orgList = MapUtilities.CachedShipStatus.AllConsoles.Where((global::Console t) => t.TaskTypes.Contains(taskType)).ToList<global::Console>();
@@ -99,6 +100,10 @@ class TaskCount
             {
                 case ModeId.SuperHostRoles:
                 case ModeId.Default:
+                case ModeId.Werewolf:
+                    CountDefaultTask(__instance);
+                    ReleaseHountAbility(__instance);
+                    break;
                 case ModeId.CopsRobbers:
                     CountDefaultTask(__instance);
                     break;
@@ -126,6 +131,33 @@ class TaskCount
                 __instance.TotalTasks += playerTotal;
                 __instance.CompletedTasks += playerCompleted;
             }
+        }
+    }
+
+    /// <summary>
+    /// 全タスク完了後に, 憑依能力を開放する
+    /// (タスク完了の判定処理 及び, クルーメイトゴーストへの変更処理)
+    /// </summary>
+    /// <param name="__instance"></param>
+    static void ReleaseHountAbility(GameData __instance)
+    {
+        if (!AmongUsClient.Instance.AmHost) return; // 生存していたら早期return
+        if (!Mode.PlusMode.PlusGameOptions.IsReleasingHauntAfterCompleteTasks) return; // 設定が無効の場合早期return
+
+        for (int i = 0; i < __instance.AllPlayers.Count; i++)
+        {
+            GameData.PlayerInfo playerInfo = __instance.AllPlayers[i];
+            PlayerControl player = playerInfo.Object;
+
+            if (player == null || player.IsBot()) continue;
+            if (player.IsAlive()) continue;
+
+            RoleTypes roleType = playerInfo.Role.Role;
+            // クルーメイト以外は以降の処理を破棄 (ImpostorとShapeshifterはここまで届かない為, 省略)
+            if (roleType is RoleTypes.ImpostorGhost or RoleTypes.CrewmateGhost or RoleTypes.GuardianAngel) continue;
+
+            bool isRelease = Roles.HandleGhostRole.AssignRole.GetReleaseHauntAbility(player);
+            if (isRelease) player.RpcSetRole(RoleTypes.CrewmateGhost); // タスクが完了していたらクルーメイトゴーストに変更し, 憑依能力を開放する。
         }
     }
 }

@@ -1,5 +1,8 @@
+using System;
+using System.Collections;
 using System.Linq;
 using AmongUs.GameOptions;
+using BepInEx.Unity.IL2CPP.Utils.Collections;
 using HarmonyLib;
 using Hazel;
 using SuperNewRoles.Buttons;
@@ -7,6 +10,8 @@ using SuperNewRoles.CustomObject;
 using SuperNewRoles.Helpers;
 using SuperNewRoles.MapCustoms.Airship;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Mode.BattleRoyal;
+using SuperNewRoles.Replay;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Crewmate;
 using SuperNewRoles.Roles.Impostor;
@@ -22,9 +27,29 @@ class WrapUpPatch
     [HarmonyPatch(typeof(ExileController), nameof(ExileController.WrapUp))]
     public class ExileControllerWrapUpPatch
     {
-        public static void Prefix(ExileController __instance)
+        public static IEnumerator WrapUpCoro(ExileController __instance)
+        {
+            if (__instance.exiled != null)
+            {
+                PlayerControl @object = __instance.exiled.Object;
+                if (@object)
+                {
+                    @object.Exiled();
+                }
+                __instance.exiled.IsDead = true;
+            }
+            if (DestroyableSingleton<TutorialManager>.InstanceExists || !GameManager.Instance.LogicFlow.IsGameOverDueToDeath())
+            {
+                yield return ShipStatus.Instance.PrespawnStep();
+                __instance.ReEnableGameplay();
+            }
+            GameObject.Destroy(__instance.gameObject);
+        }
+        public static bool Prefix(ExileController __instance)
         {
             WrapUpPatch.Prefix(__instance.exiled);
+            __instance.StartCoroutine(WrapUpCoro(__instance).WrapToIl2Cpp());
+            return false;
         }
         public static void Postfix(ExileController __instance)
         {
@@ -81,7 +106,7 @@ class WrapUpPatch
             if (exiled.Object.IsRole(RoleId.SideKiller))
             {
                 var sideplayer = RoleClass.SideKiller.GetSidePlayer(PlayerControl.LocalPlayer);
-                if (sideplayer != null)
+                if (sideplayer != null && sideplayer.IsAlive())
                 {
                     if (!RoleClass.SideKiller.IsUpMadKiller)
                     {
@@ -98,13 +123,21 @@ class WrapUpPatch
         {
             exiled = null;
         }
+        if (ReplayManager.IsReplayMode)
+        {
+            ReplayLoader.OnWrapUp();
+        }
+
+        // |:========== 追放の有無問わず 会議終了時に行う処理 開始 ==========:|
+        SelectRoleSystem.OnWrapUp();
 
         Shielder.WrapUp();
         Kunoichi.WrapUp();
         SerialKiller.WrapUp();
         Assassin.WrapUp();
         CountChanger.CountChangerPatch.WrapUpPatch();
-        RoleClass.Tuna.IsMeetingEnd = true;
+        RoleClass.IsFirstMeetingEnd = true;
+        RoleClass.IsfirstResetCool = false;
         CustomButton.MeetingEndedUpdate();
 
         PlayerControlHelper.RefreshRoleDescription(PlayerControl.LocalPlayer);
@@ -112,40 +145,59 @@ class WrapUpPatch
         ModeHandler.Wrapup(exiled);
         RedRidingHood.WrapUp(exiled);
         Pteranodon.WrapUp();
-        Roles.Neutral.Revolutionist.WrapUp();
-        Roles.Neutral.Spelunker.WrapUp();
-        Roles.Neutral.Hitman.WrapUp();
-        Roles.Impostor.Matryoshka.WrapUp();
-        Roles.Neutral.PartTimer.WrapUp();
-        Roles.Crewmate.KnightProtected_Patch.WrapUp();
+        Revolutionist.WrapUp();
+        Spelunker.WrapUp();
+        Hitman.WrapUp();
+        Matryoshka.WrapUp();
+        PartTimer.WrapUp();
+        KnightProtected_Patch.WrapUp();
         Clergyman.WrapUp();
         Balancer.WrapUp(exiled == null ? null : exiled.Object);
         Speeder.WrapUp();
-        Bestfalsecharge.WrapUp();
-        CustomRoles.OnWrapUp();
+        CustomRoles.OnWrapUp(exiled?.Object);
+        Rocket.WrapUp(exiled == null ? null : exiled.Object);
         if (AmongUsClient.Instance.AmHost)
         {
-            PlayerAnimation.PlayerAnimations.All(x =>
+            PlayerAnimation.PlayerAnimations.Values.All(x =>
             {
                 x.RpcAnimation(RpcAnimationType.Stop);
                 return false;
             });
         }
         SecretRoom.Reset();
-        if (PlayerControl.LocalPlayer.IsRole(RoleId.Painter)) Roles.Crewmate.Painter.WrapUp();
-        Roles.Neutral.Photographer.WrapUp();
-        Roles.Impostor.Cracker.WrapUp();
+        if (PlayerControl.LocalPlayer.IsRole(RoleId.Painter)) Painter.WrapUp();
+        Photographer.WrapUp();
+        Cracker.WrapUp();
         RoleClass.IsMeeting = false;
-        Seer.WrapUpPatch.WrapUpPostfix();
+        SeerHandler.WrapUpPatch.WrapUpPostfix();
         Vampire.SetActiveBloodStaiWrapUpPatch();
-        Roles.Crewmate.Celebrity.WrapUp();
+        Roles.Crewmate.Celebrity.AbilityOverflowingBrilliance.WrapUp();
         Roles.Neutral.TheThreeLittlePigs.TheFirstLittlePig.WrapUp();
+        BlackHatHacker.WrapUp();
+        Moira.WrapUp(exiled);
+        WellBehaver.WrapUp();
         foreach (PlayerControl p in PlayerControl.AllPlayerControls)
         {
             p.resetChange();
         }
         RoleClass.Doppelganger.Targets = new();
+
+        Crook.WrapUp.GeneralProcess(exiled == null ? null : exiled.Object);
+
+        FixAfterMeetingVent();
+
+        Logger.Info("[追放の有無問わず 会議終了時に行う処理] 通過", "WrapUp");
+
+        // |:========== 追放が発生していた場合のみ 会議終了時に行う処理 開始 ==========:|
+
         if (exiled == null) return;
+
+        exiled.Object.Exiled();
+        exiled.IsDead = true;
+        FinalStatusPatch.FinalStatusData.FinalStatuses[exiled.PlayerId] = FinalStatus.Exiled;
+
+        var Player = ModHelpers.PlayerById(exiled.PlayerId);
+
         if (exiled.Object.IsRole(RoleId.Jumbo) && exiled.Object.IsCrew())
         {
             GameManager.Instance.RpcEndGame((GameOverReason)CustomGameOverReason.NoWinner, false);
@@ -154,12 +206,8 @@ class WrapUpPatch
         Vampire.DependentsExileWrapUpPatch(exiled.Object);
         SoothSayer_Patch.WrapUp(exiled.Object);
         Nekomata.NekomataEnd(exiled);
-        Roles.Impostor.NekoKabocha.OnWrapUp(exiled.Object);
+        NekoKabocha.OnWrapUp(exiled.Object);
 
-        exiled.Object.Exiled();
-        exiled.IsDead = true;
-        FinalStatusPatch.FinalStatusData.FinalStatuses[exiled.PlayerId] = FinalStatus.Exiled;
-        var Player = ModHelpers.PlayerById(exiled.PlayerId);
         if (ModeHandler.IsMode(ModeId.Default))
         {
             if (RoleClass.Lovers.SameDie && Player.IsLovers())
@@ -223,6 +271,24 @@ class WrapUpPatch
                 }
             }
         }
+        else if (ModeHandler.IsMode(ModeId.SuperHostRoles))
+        {
+            CheckForEndVotingPatch.ResetExiledPlayerName();
+        }
         Mode.SuperHostRoles.Main.RealExiled = null;
+
+        Logger.Info("[追放が発生していた場合のみ 会議終了時に行う処理] 通過", "WrapUp");
+    }
+    static void FixAfterMeetingVent()
+    {
+        //ベントがなければ帰れ！！！
+        if (!ShipStatus.Instance.Systems.TryGetValue(SystemTypes.Ventilation, out ISystemType vent))
+            return;
+        VentilationSystem ventilationSystem = vent.TryCast<VentilationSystem>();
+        // VentiSystemでなければ帰れ！！！
+        if (ventilationSystem == null)
+            return;
+        ventilationSystem.PlayersInsideVents = new();
+        ventilationSystem.IsDirty = true;
     }
 }

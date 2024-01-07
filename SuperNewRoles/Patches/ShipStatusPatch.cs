@@ -1,8 +1,11 @@
+using System;
 using AmongUs.GameOptions;
 using HarmonyLib;
+using Hazel;
 using SuperNewRoles.MapCustoms;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
+using SuperNewRoles.Replay.ReplayActions;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Crewmate;
 using UnityEngine;
@@ -29,8 +32,32 @@ public static class ShipStatus_Awake_Patch
         MapUtilities.CachedShipStatus = __instance;
     }
 }
-[HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.RepairSystem))]
-class RepairSystemPatch
+
+[HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.UpdateSystem), new Type[] { typeof(SystemTypes), typeof(PlayerControl), typeof(MessageReader) })]
+class UpdateSystemMessagReaderPatch
+{
+    public static bool Prefix(ShipStatus __instance,
+        [HarmonyArgument(0)] SystemTypes systemType,
+        [HarmonyArgument(1)] PlayerControl player,
+        [HarmonyArgument(2)] MessageReader msgReader)
+    {
+        int position = msgReader.Position;
+        amount = msgReader.ReadByte();
+        msgReader.Position = position;
+        return UpdateSystemPatch.Prefix(__instance, systemType, player, amount);
+    }
+    static byte amount;
+    public static void Postfix(ShipStatus __instance,
+        [HarmonyArgument(0)] SystemTypes systemType,
+        [HarmonyArgument(1)] PlayerControl player,
+        [HarmonyArgument(2)] MessageReader msgReader)
+    {
+        UpdateSystemPatch.Postfix(__instance, systemType, player, amount);
+    }
+}
+
+[HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.UpdateSystem), new Type[] { typeof(SystemTypes), typeof(PlayerControl), typeof(byte) })]
+class UpdateSystemPatch
 {
     public static bool Prefix(ShipStatus __instance,
         [HarmonyArgument(0)] SystemTypes systemType,
@@ -48,7 +75,7 @@ class RepairSystemPatch
                 if (PlayerControl.LocalPlayer.IsRole(RoleId.Painter) && RoleClass.Painter.CurrentTarget != null && RoleClass.Painter.CurrentTarget.PlayerId == player.PlayerId) Roles.Crewmate.Painter.Handle(Roles.Crewmate.Painter.ActionType.SabotageRepair);
             }
         }
-        if ((ModeHandler.IsMode(ModeId.BattleRoyal) || ModeHandler.IsMode(ModeId.Zombie) || ModeHandler.IsMode(ModeId.HideAndSeek) || ModeHandler.IsMode(ModeId.CopsRobbers)) && (systemType == SystemTypes.Sabotage || systemType == SystemTypes.Doors)) return false;
+        if ((ModeHandler.IsMode(ModeId.BattleRoyal) || ModeHandler.IsMode(ModeId.Zombie) || ModeHandler.IsMode(ModeId.HideAndSeek) || ModeHandler.IsMode(ModeId.CopsRobbers, ModeId.PantsRoyal)) && (systemType == SystemTypes.Sabotage || systemType == SystemTypes.Doors)) return false;
 
         if (systemType == SystemTypes.Electrical && 0 <= amount && amount <= 4) // 停電を直そうとした
         {
@@ -67,16 +94,18 @@ class RepairSystemPatch
         }
         if (ModeHandler.IsMode(ModeId.SuperHostRoles))
         {
-            bool returndata = MorePatch.RepairSystem(__instance, systemType, player, amount);
+            bool returndata = MorePatch.UpdateSystem(__instance, systemType, player, amount);
             return returndata;
         }
         return true;
     }
     public static void Postfix(
+        ShipStatus __instance,
         [HarmonyArgument(0)] SystemTypes systemType,
         [HarmonyArgument(1)] PlayerControl player,
         [HarmonyArgument(2)] byte amount)
     {
+        ReplayActionUpdateSystem.Create(systemType, player.PlayerId, amount);
         if (!RoleHelpers.IsSabotage())
         {
             new LateTask(() =>
@@ -96,7 +125,7 @@ class RepairSystemPatch
             SyncSetting.CustomSyncSettings();
             if (systemType == SystemTypes.Comms)
             {
-                Mode.SuperHostRoles.FixedUpdate.SetRoleNames();
+                ChangeName.SetRoleNames();
             }
         }
     }
@@ -116,12 +145,14 @@ class LightPatch
 {
     public static bool Prefix(ShipStatus __instance, [HarmonyArgument(0)] GameData.PlayerInfo player, ref float __result)
     {
-        ISystemType systemType = __instance.Systems.ContainsKey(SystemTypes.Electrical) ? __instance.Systems[SystemTypes.Electrical] : null;
-        if (systemType == null) return true;
-        SwitchSystem switchSystem = systemType.TryCast<SwitchSystem>();
-        if (switchSystem == null) return true;
+        float num = 1f;
+        if (__instance.Systems.ContainsKey(SystemTypes.Electrical))
+        {
+            SwitchSystem switchSystem = __instance.Systems[SystemTypes.Electrical].TryCast<SwitchSystem>();
+            if (switchSystem != null)
+                num = switchSystem.Value / 255f;
+        }
 
-        float num = switchSystem.Value / 255f;
 
         __result = player == null || player.IsDead
             ? __instance.MaxLightRadius
@@ -141,8 +172,10 @@ class LightPatch
         if (Clergyman.IsLightOutVision()) return shipStatus.MaxLightRadius * RoleClass.Clergyman.DownImpoVision;
         if (isImpostor) return shipStatus.MaxLightRadius * GameManager.Instance.LogicOptions.currentGameOptions.GetFloat(FloatOptionNames.ImpostorLightMod);
 
-        SwitchSystem switchSystem = shipStatus.Systems[SystemTypes.Electrical].TryCast<SwitchSystem>();
-        float lerpValue = switchSystem.Value / 255f;
+        float lerpValue = 1;
+        if (shipStatus.Systems.TryGetValue(SystemTypes.Electrical, out ISystemType elec)){
+            lerpValue = elec.TryCast<SwitchSystem>().Value / 255f;
+        }
         var LocalPlayer = PlayerControl.LocalPlayer;
         if (LocalPlayer.IsRole(RoleId.Dependents) ||
             (LocalPlayer.IsRole(RoleId.Nocturnality) && !ModeHandler.IsMode(ModeId.SuperHostRoles)))

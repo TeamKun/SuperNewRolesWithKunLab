@@ -16,13 +16,13 @@ public static class LadderDead
         if (ModeHandler.IsMode(ModeId.Default))
         {
             if (PlayerControl.LocalPlayer.IsDead()) return;
-            if (TargetLadderData.ContainsKey(CachedPlayer.LocalPlayer.PlayerId))
+            if (TargetLadderData.TryGetValue(CachedPlayer.LocalPlayer.PlayerId, out Vector3 pos))
             {
-                if (Vector2.Distance(TargetLadderData[CachedPlayer.LocalPlayer.PlayerId], CachedPlayer.LocalPlayer.transform.position) < 0.5f)
+                if (Vector2.Distance(pos, CachedPlayer.LocalPlayer.transform.position) < 0.5f)
                 {
                     if (PlayerControl.LocalPlayer.moveable)
                     {
-                        PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer);
+                        PlayerControl.LocalPlayer.RpcMurderPlayer(PlayerControl.LocalPlayer, true);
                         PlayerControl.LocalPlayer.RpcSetFinalStatus(FinalStatus.LadderDeath);
                     }
                 }
@@ -41,7 +41,7 @@ public static class LadderDead
                         player.Data.IsDead = true;
                         new LateTask(() =>
                         {
-                            player.RpcMurderPlayer(player);
+                            player.RpcMurderPlayer(player, true);
                             player.RpcSetFinalStatus(FinalStatus.LadderDeath);
                         }, 0.05f, "Ladder Murder");
                     }

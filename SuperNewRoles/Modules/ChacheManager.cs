@@ -7,20 +7,23 @@ class ChacheManager
 {
     public static Dictionary<int, RoleId> MyRoleChache;
     public static Dictionary<int, RoleId> MyGhostRoleChache;
+    public static Dictionary<int, PlayerControl> HauntedWolfChache;
     public static Dictionary<int, PlayerControl> LoversChache;
     public static Dictionary<int, PlayerControl> FakeLoversChache;
     public static Dictionary<int, PlayerControl> QuarreledChache;
     public static void Load()
     {
-        MyRoleChache = new Dictionary<int, RoleId>();
-        MyGhostRoleChache = new Dictionary<int, RoleId>();
-        LoversChache = new Dictionary<int, PlayerControl>();
+        MyRoleChache = new();
+        MyGhostRoleChache = new();
+        HauntedWolfChache = new ();
+        LoversChache = new();
         FakeLoversChache = new();
-        QuarreledChache = new Dictionary<int, PlayerControl>();
+        QuarreledChache = new();
     }
     public static void ResetChache()
     {
         ResetQuarreledChache();
+        ResetHauntedWolfChache();
         ResetLoversChache();
         ResetMyRoleChache();
         ResetMyGhostRoleChache();
@@ -30,6 +33,13 @@ class ChacheManager
         foreach (PlayerControl p in CachedPlayer.AllPlayers)
         {
             QuarreledChache[p.PlayerId] = p.IsQuarreled(false) ? p.GetOneSideQuarreled(false) : null;
+        }
+    }
+    public static void ResetHauntedWolfChache()
+    {
+        foreach (PlayerControl player in CachedPlayer.AllPlayers)
+        {
+            if (player.IsHauntedWolf(false)) HauntedWolfChache[player.PlayerId] = player;
         }
     }
     public static void ResetLoversChache()

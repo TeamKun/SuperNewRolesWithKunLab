@@ -24,7 +24,7 @@ public static class Pteranodon
     }
 
     public static List<PlayerControl> PteranodonPlayer;
-    public static Color32 color = new Color32(17, 128, 45, byte.MaxValue);
+    public static Color32 color = new(17, 128, 45, byte.MaxValue);
     public static bool IsPteranodonNow;
     public static Vector2 StartPosition;
     public static Vector2 TargetPosition;
@@ -32,7 +32,8 @@ public static class Pteranodon
     public static float Timer;
     public static Dictionary<byte, (float, float, Vector2)> UsingPlayers;
     public const float StartTime = 2f;
-    public static FollowerCamera FCamera {
+    public static FollowerCamera FCamera
+    {
         get
         {
             if (_camera == null)
@@ -157,6 +158,7 @@ public static class Pteranodon
             UsingPlayers.Add(player.PlayerId, (tarpos, StartTime, pos));
             player.NetTransform.enabled = false;
             player.Collider.enabled = false;
+            player.moveable = false;
         }
         else
         {
@@ -164,6 +166,7 @@ public static class Pteranodon
             player.NetTransform.enabled = true;
             player.Collider.enabled = true;
             player.transform.position = pos;
+            player.moveable = true;
         }
     }
     // ここにコードを書きこんでください

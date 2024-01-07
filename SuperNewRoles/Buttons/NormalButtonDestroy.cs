@@ -20,6 +20,7 @@ public class NormalButtonDestroy
             { RoleId.Smasher, (NormalButton.KillButton, true) },
             { RoleId.Conjurer, (NormalButton.KillButton, true) },
             { RoleId.Tasker, (NormalButton.KillButton, !CustomOptionHolder.TaskerCanKill.GetBool()) },
+            { RoleId.Rocket, (NormalButton.KillButton, true)},
 
             { RoleId.Minimalist, (NormalButton.ReportButton, !RoleClass.Minimalist.UseReport) },
             { RoleId.Fox, (NormalButton.ReportButton, !RoleClass.Fox.UseReport) },
@@ -61,5 +62,14 @@ public class NormalButtonDestroy
                     hm.UseButton.gameObject.SetActive(false);
                 break;
         }
+    }
+
+    /// <summary>
+    /// 憑依ボタンを非表示にする。
+    /// </summary>
+    public static void DisableHauntButton()
+    {
+        var hm = FastDestroyableSingleton<HudManager>.Instance;
+        if (hm.AbilityButton.gameObject.active) hm.AbilityButton.gameObject.SetActive(false);
     }
 }

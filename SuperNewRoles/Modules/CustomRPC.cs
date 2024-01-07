@@ -15,19 +15,40 @@ using SuperNewRoles.MapOption;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Patches;
+using SuperNewRoles.Replay.ReplayActions;
 using SuperNewRoles.Roles;
+using SuperNewRoles.Roles.Attribute;
 using SuperNewRoles.Roles.Crewmate;
+using SuperNewRoles.Roles.Impostor;
 using SuperNewRoles.Roles.Neutral;
+using SuperNewRoles.Roles.RoleBases;
+using SuperNewRoles.Roles.RoleBases.Interfaces;
 using SuperNewRoles.Sabotage;
+using SuperNewRoles.WaveCannonObj;
 using UnityEngine;
 using static SuperNewRoles.Patches.FinalStatusPatch;
+using Object = UnityEngine.Object;
 
 namespace SuperNewRoles.Modules;
 
 //labmemo ロールの定義
 public enum RoleId
 {
+    None, // RoleIdの初期化用
     DefaultRole,
+
+    WaveCannon,
+    Slugger,
+    Conjurer,
+    EvilGuesser,
+    NiceGuesser,
+    EvilHacker,
+    EvilSeer,
+    Cupid,
+    Santa,
+    BlackSanta,
+    //RoleId
+
     SoothSayer,
     Jester,
     Lighter,
@@ -47,8 +68,6 @@ public enum RoleId
     Shielder,
     Speeder,
     Freezer,
-    NiceGuesser,
-    EvilGuesser,
     Vulture,
     NiceScientist,
     Clergyman,
@@ -107,7 +126,6 @@ public enum RoleId
     Fox,
     Seer,
     MadSeer,
-    EvilSeer,
     RemoteSheriff,
     TeleportingJackal,
     MadMaker,
@@ -126,8 +144,7 @@ public enum RoleId
     MayorFriends,
     VentMaker,
     GhostMechanic,
-    EvilHacker,
-    HauntedWolf,
+    HauntedWolf, // 情報表示用のRoleId, 役職管理としては使用していない
     PositionSwapper,
     Tuna,
     Mafia,
@@ -159,23 +176,19 @@ public enum RoleId
     Photographer,
     Stefinder,
     Stefinder1,
-    Slugger,
     ShiftActor,
     ConnectKiller,
     GM,
     Cracker,
-    WaveCannon,
     WaveCannonJackal,
-    SideKickWaveCannon,
+    SidekickWaveCannon,
     NekoKabocha,
     Doppelganger,
     Werewolf,
     Knight,
     Pavlovsdogs,
     Pavlovsowner,
-    Conjurer,
     Camouflager,
-    Cupid,
     HamburgerShop,
     Penguin,
     Dependents,
@@ -194,22 +207,44 @@ public enum RoleId
     TheThirdLittlePig,
     OrientalShaman,
     ShermansServant,
-    SidekickWaveCannon,
-    Inkya,
     Balancer,
     Pteranodon,
-    //RoleId
+    BlackHatHacker,
+    Reviver,
+    Guardrawer,
+    KingPoster,
+    LongKiller,
+    Darknight,
+    Revenger,
+    CrystalMagician,
+    GrimReaper,
+    PoliceSurgeon,
+    MadRaccoon,
+    Moira,
+    JumpDancer,
+    Sauner,
+    Bat,
+    Rocket,
+    WellBehaver,
+    Pokerface,
+    Spider,
+    Crook,
+    Frankenstein,
+
+    Inkya,
 }
 
 //labmemo mod側のRPCのID設定
 public enum CustomRPC
 {
-    ShareOptions = 145,
+    ShareOptions = 60,
     ShareSNRVersion,
     SetRole,
+    SwapRole,
+    SetHauntedWolf,
     SetQuarreled,
     RPCClergymanLightOut,
-    SheriffKill = 150,
+    SheriffKill,
     MeetingSheriffKill,
     CustomRPCKill,
     ReportDeadBody,
@@ -219,7 +254,7 @@ public enum CustomRPC
     RPCMurderPlayer,
     ShareWinner,
     TeleporterTP,
-    SidekickPromotes = 160,
+    SidekickPromotes,
     CreateSidekick,
     CreateSidekickSeer,
     CreateSidekickWaveCannon,
@@ -229,7 +264,7 @@ public enum CustomRPC
     SetRoomTimerRPC,
     SetScientistRPC,
     ReviveRPC,
-    SetHaison = 170,
+    SetHaison,
     SetWinCond,
     SetDetective,
     UseEraserCount,
@@ -239,7 +274,7 @@ public enum CustomRPC
     SetDeviceTime,
     UncheckedSetColor,
     UncheckedSetVanillaRole,
-    SetMadKiller = 180,
+    SetMadKiller,
     SetCustomSabotage,
     UseStuntmanCount,
     UseMadStuntmanCount,
@@ -249,17 +284,15 @@ public enum CustomRPC
     DemonCurse,
     ArsonistDouse,
     SetSpeedDown,
-    ShielderProtect = 190,
+    ShielderProtect,
     SetShielder,
     SetSpeedFreeze,
     MakeVent,
     PositionSwapperTP,
     FixLights,
-    RandomSpawn,
     KunaiKill,
     SetSecretRoomTeleportStatus,
     ChiefSidekick,
-    RpcSetDoorway = 200,
     StartRevolutionMeeting,
     UncheckedUsePlatform,
     BlockReportDeadBody,
@@ -267,22 +300,19 @@ public enum CustomRPC
     SetMatryoshkaDeadbody,
     StefinderIsKilled,
     PlayPlayerAnimation,
-    SluggerExile,
     PainterPaintSet,
-    SharePhotograph = 210,
-    PainterSetTarget = 220,
+    SharePhotograph,
+    PainterSetTarget,
     SetFinalStatus,
     MeetingKill,
     KnightProtected,
     KnightProtectClear,
     GuesserShoot,
-    WaveCannon,
     ShowFlash,
     PavlovsOwnerCreateDog,
     CrackerCrack,
-    Camouflage = 230,
+    Camouflage,
     ShowGuardEffect,
-    SetLoversCupid,
     PenguinHikizuri,
     SetVampireStatus,
     SyncDeathMeeting,
@@ -290,7 +320,7 @@ public enum CustomRPC
     SetLoversBreakerWinner,
     RPCTeleport,
     SafecrackerGuardCount,
-    SetVigilance = 240,
+    SetVigilance,
     Chat,
     SetWiseManStatus,
     SetVentStatusMechanic,
@@ -300,8 +330,28 @@ public enum CustomRPC
     CreateShermansServant,
     SetVisible,
     PenguinMeetingEnd,
-    BalancerBalance = 250,
+    BalancerBalance,
     PteranodonSetStatus,
+    SetInfectionTimer,
+    SendMeetingTurnNow,
+    PoliceSurgeonSendActualDeathTimeManager,
+    MoiraChangeRole,
+    JumpDancerJump,
+    BatSetDeviceStop,
+    RocketSeize,
+    RocketLetsRocket,
+    CreateGarbage,
+    DestroyGarbage,
+    SetPokerfaceTeam,
+    SetSpiderTrap,
+    CheckSpiderTrapCatch,
+    SpiderTrapCatch,
+    CrookSaveSignDictionary,
+    RoleRpcHandler,
+    SetFrankensteinMonster,
+    MoveDeadBody,
+    RpcSetDoorway,
+    WaveCannon,
 
     陰キャ転生_つかまれる,
     陰キャ転生_おろされる,
@@ -311,6 +361,159 @@ public enum CustomRPC
 
 public static class RPCProcedure
 {
+    public static void RoleRpcHandler(MessageReader reader)
+    {
+        byte playerId = reader.ReadByte();
+        RoleBase role = RoleBaseManager.GetRoleBaseById(playerId);
+        if (role == null)
+            return;
+        if (role is not IRpcHandler)
+            return;
+        (role as IRpcHandler).RpcReader(reader);
+    }
+    public static void SetSpiderTrap(byte source, float x, float y, ushort id)
+    {
+        PlayerControl player = ModHelpers.PlayerById(source);
+        if (player == null)
+            return;
+        SpiderTrap.Create(player, new(x, y), id);
+    }
+    public static WaveCannonObject WaveCannon(byte Type, byte Id, bool IsFlipX, byte OwnerId, Vector2 position, WaveCannonObject.WCAnimType AnimType)
+    {
+        ReplayActionWavecannon.Create(Type, Id, IsFlipX, OwnerId, position);
+        Logger.Info($"{(WaveCannonObject.RpcType)Type} : {Id} : {IsFlipX} : {OwnerId} : {position} : {(ModHelpers.PlayerById(OwnerId) == null ? -1 : ModHelpers.PlayerById(OwnerId).Data.PlayerName)}", "RpcWaveCannon");
+        switch ((WaveCannonObject.RpcType)Type)
+        {
+            case WaveCannonObject.RpcType.Spawn:
+                return new GameObject("WaveCannon Object").AddComponent<WaveCannonObject>().Init(position, IsFlipX, ModHelpers.PlayerById(OwnerId), AnimType);
+            case WaveCannonObject.RpcType.Shoot:
+                WaveCannonObject.Objects.Values.FirstOrDefault(x => x.Owner != null && x.Owner.PlayerId == OwnerId && x.Id == Id).Shoot();
+                break;
+        }
+        return null;
+    }
+    public static void SpiderTrapCatch(ushort id, byte targetid)
+    {
+        PlayerControl target = ModHelpers.PlayerById(targetid);
+        if (target == null)
+            return;
+        if (!SpiderTrap.SpiderTraps.TryGetValue(id, out SpiderTrap trap) || trap == null)
+            return;
+        trap.CatchPlayer(target);
+    }
+    public static void CheckSpiderTrapCatch(ushort id, byte targetid)
+    {
+        if (!AmongUsClient.Instance.AmHost)
+            return;
+        PlayerControl target = ModHelpers.PlayerById(targetid);
+        if (target == null)
+            return;
+        // 対象が捕まっている場合は何もしない
+        if (SpiderTrap.CatchingPlayers.ContainsKey(target.PlayerId))
+            return;
+        // トラップがない場合は何もしない
+        if (!SpiderTrap.SpiderTraps.TryGetValue(id, out SpiderTrap trap) || trap == null)
+            return;
+        // トラップがすでに捕まえている場合は何もしない
+        if (trap.CatchingPlayer != null)
+            return;
+        // 対象が死んでいる場合は何もしない
+        if (target.IsDead())
+            return;
+        MessageWriter writer = RPCHelper.StartRPC(CustomRPC.SpiderTrapCatch);
+        writer.Write(id);
+        writer.Write(targetid);
+        writer.EndRPC();
+        SpiderTrapCatch(id, targetid);
+    }
+    public static void MoveDeadBody(byte id, float x, float y)
+    {
+        foreach (DeadBody dead in UnityEngine.Object.FindObjectsOfType<DeadBody>())
+        {
+            if (dead.ParentId == id)
+            {
+                dead.transform.position = new(x, y, y / 1000f);
+                return;
+            }
+        }
+    }
+    public static void SetFrankensteinMonster(byte id, byte body, bool kill)
+    {
+        PlayerControl player = ModHelpers.PlayerById(id);
+        if (!player) return;
+        foreach (DeadBody dead in UnityEngine.Object.FindObjectsOfType<DeadBody>())
+        {
+            if (dead.ParentId == body)
+            {
+                Frankenstein.MonsterPlayer[id] = dead;
+                player.setOutfit(GameData.Instance.GetPlayerById(body).DefaultOutfit);
+                return;
+            }
+        }
+        Frankenstein.MonsterPlayer[id] = null;
+        if (kill) Frankenstein.KillCount[id]--;
+        //遅延させて戻す
+        new LateTask(() =>
+        {
+            if (player.AmOwner) player.RpcSnapTo(Frankenstein.OriginalPosition);
+            player.setOutfit(player.Data.DefaultOutfit);
+        }, 0.1f, "SetFrankensteinMonster");
+    }
+    public static void RocketSeize(byte sourceid, byte targetid)
+    {
+        PlayerControl source = ModHelpers.PlayerById(sourceid);
+        PlayerControl target = ModHelpers.PlayerById(targetid);
+        if (source == null || target == null)
+            return;
+        if (!Rocket.RoleData.RocketData.TryGetValue(source, out List<PlayerControl> players))
+            players = new();
+        players.Add(target);
+        Rocket.RoleData.RocketData[source] = players;
+    }
+    public static void RocketLetsRocket(byte sourceid)
+    {
+        PlayerControl source = ModHelpers.PlayerById(sourceid);
+        if (source == null)
+            return;
+        if (!Rocket.RoleData.RocketData.TryGetValue(source, out List<PlayerControl> players))
+        {
+            Logger.Info("RocketMuri:ロケット無理でした。");
+            return;
+        }
+        int count = 0;
+        foreach (PlayerControl player in players)
+        {
+            if (player == null) continue;
+            player.Exiled();
+            new GameObject("RocketDeadbody").AddComponent<RocketDeadbody>().Init(player, count, players.Count);
+            count++;
+        }
+        Rocket.RoleData.RocketData.Remove(source);
+    }
+    public static void SetPokerfaceTeam(byte playerid1, byte playerid2, byte playerid3)
+    {
+        PlayerControl player1 = ModHelpers.PlayerById(playerid1);
+        PlayerControl player2 = ModHelpers.PlayerById(playerid2);
+        PlayerControl player3 = ModHelpers.PlayerById(playerid3);
+        if (player1 == null || player2 == null || player3 == null)
+            return;
+        Pokerface.RoleData.PokerfaceTeams.Add(new(player1, player2, player3));
+    }
+    public static void DestroyGarbage(string name) => Garbage.AllGarbage.Find(x => x.GarbageObject.name == name)?.Clear();
+    public static void CreateGarbage(float x, float y) => new Garbage(new(x, y));
+    public static void MoiraChangeRole(byte player1, byte player2, bool IsUseEnd)
+    {
+        (byte, byte) data = (player1, player2);
+        Moira.ChangeData.Add(data);
+        Moira.SwapVoteData = data;
+        if (IsUseEnd) Moira.AbilityUsedUp = true;
+        Moira.AbilityUsedThisMeeting = true;
+    }
+    public static void SetInfectionTimer(byte id, Dictionary<byte, float> infectionTimer)
+    {
+        if (!ModHelpers.PlayerById(id)) return;
+        BlackHatHacker.InfectionTimer[id] = infectionTimer;
+    }
     public static void PteranodonSetStatus(byte playerId, bool Status, bool IsRight, float tarpos, byte[] buff)
     {
         PlayerControl player = ModHelpers.PlayerById(playerId);
@@ -328,6 +531,7 @@ public static class RPCProcedure
         PlayerControl player1 = ModHelpers.PlayerById(player1Id);
         PlayerControl player2 = ModHelpers.PlayerById(player2Id);
         if (source is null || player1 is null || player2 is null) return;
+        ReplayActionBalancer.Create(sourceId, player1Id, player2Id);
         Balancer.StartAbility(source, player1, player2);
     }
     public static void SetWiseManStatus(byte sourceId, float rotate, bool Is)
@@ -337,6 +541,7 @@ public static class RPCProcedure
     }
     public static void SetVentStatusMechanic(byte sourceplayer, byte targetvent, bool Is, byte[] buff)
     {
+        ReplayActionSetMechanicStatus.Create(sourceplayer, targetvent, Is, buff);
         PlayerControl source = ModHelpers.PlayerById(sourceplayer);
         Vent vent = ModHelpers.VentById(targetvent);
         Vector3 position = Vector3.zero;
@@ -482,11 +687,6 @@ public static class RPCProcedure
                 break;
         }
     }
-    public static void SetLoversCupid(byte sourceid, byte player1, byte player2)
-    {
-        RoleClass.Cupid.CupidLoverPair[sourceid] = player1;
-        SetLovers(player1, player2);
-    }
 
     public static void SetVampireStatus(byte sourceId, byte targetId, bool IsOn, bool IsKillSuc)
     {
@@ -495,11 +695,11 @@ public static class RPCProcedure
         if (source == null || target == null) return;
         if (IsOn)
         {
-            RoleClass.Vampire.Targets.Add(source, target);
+            RoleClass.Vampire.Targets[source] = target;
         }
         else
         {
-            if (RoleClass.Vampire.BloodStains.ContainsKey(target.PlayerId))
+            if (RoleClass.Vampire.BloodStains.Contains(target.PlayerId))
             {
                 if (IsKillSuc)
                 {
@@ -519,7 +719,7 @@ public static class RPCProcedure
         PlayerControl source = ModHelpers.PlayerById(sourceId);
         PlayerControl target = ModHelpers.PlayerById(targetId);
         if (source == null || target == null) return;
-        RoleClass.Penguin.PenguinData.Add(source, target);
+        RoleClass.Penguin.PenguinData[source] = target;
     }
 
     public static void ShowGuardEffect(byte showerid, byte targetid)
@@ -527,8 +727,7 @@ public static class RPCProcedure
         if (showerid != CachedPlayer.LocalPlayer.PlayerId) return;
         PlayerControl target = ModHelpers.PlayerById(targetid);
         if (target == null) return;
-        PlayerControl.LocalPlayer.ProtectPlayer(target, 0);
-        PlayerControl.LocalPlayer.MurderPlayer(target);
+        PlayerControl.LocalPlayer.MurderPlayer(target, MurderResultFlags.FailedProtected | MurderResultFlags.DecisionByHost);
     }
     public static void KnightProtectClear(byte Target)
     {
@@ -610,7 +809,7 @@ public static class RPCProcedure
         if (source == null || target == null) return;
         if (IsSelfDeath)
         {
-            source.MurderPlayer(source);
+            source.MurderPlayer(source, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         }
         else
         {
@@ -680,47 +879,20 @@ public static class RPCProcedure
         if (!RoleClass.Cracker.CrackedPlayers.Contains(Target)) RoleClass.Cracker.CrackedPlayers.Add(Target);
     }
 
-    public static WaveCannonObject WaveCannon(byte Type, byte Id, bool IsFlipX, byte OwnerId, byte[] buff)
-    {
-        Logger.Info($"{(WaveCannonObject.RpcType)Type} : {Id} : {IsFlipX} : {OwnerId} : {buff.Length} : {(ModHelpers.PlayerById(OwnerId) == null ? -1 : ModHelpers.PlayerById(OwnerId).Data.PlayerName)}", "RpcWaveCannon");
-        switch ((WaveCannonObject.RpcType)Type)
-        {
-            case WaveCannonObject.RpcType.Spawn:
-                Vector3 position = Vector3.zero;
-                position.x = BitConverter.ToSingle(buff, 0 * sizeof(float));
-                position.y = BitConverter.ToSingle(buff, 1 * sizeof(float));
-                return new(position, IsFlipX, ModHelpers.PlayerById(OwnerId));
-            case WaveCannonObject.RpcType.Shoot:
-                WaveCannonObject.Objects.FirstOrDefault(x => x.Owner != null && x.Owner.PlayerId == OwnerId && x.Id == Id).Shoot();
-                break;
-        }
-        return null;
-    }
     public static void SetFinalStatus(byte targetId, FinalStatus Status)
     {
         FinalStatusData.FinalStatuses[targetId] = Status;
     }
 
-    public static void SluggerExile(byte SourceId, List<byte> Targets)
-    {
-        Logger.Info("～SluggerExile～");
-        PlayerControl Source = SourceId.GetPlayerControl();
-        if (Source == null) return;
-        Logger.Info("Source突破");
-        foreach (byte target in Targets)
-        {
-            PlayerControl Player = target.GetPlayerControl();
-            Logger.Info($"{target}はnullか:{Player == null}");
-            if (Player == null) continue;
-            Player.Exiled();
-            new SluggerDeadbody().Start(Source.PlayerId, Player.PlayerId, Source.transform.position - Player.transform.position);
-        }
-    }
     public static void PlayPlayerAnimation(byte playerid, byte type)
     {
         RpcAnimationType AnimType = (RpcAnimationType)type;
         PlayerAnimation PlayerAnim = PlayerAnimation.GetPlayerAnimation(playerid);
-        if (PlayerAnim == null) return;
+        if (PlayerAnim == null)
+        {
+            Logger.Info("PlayerAnimがぬるだった...:" + playerid.ToString());
+            return;
+        }
         PlayerAnim.HandleAnim(AnimType);
     }
     public static void PainterSetTarget(byte target, bool Is)
@@ -839,6 +1011,8 @@ public static class RPCProcedure
     }
     public static void FixLights()
     {
+        if (!MapUtilities.Systems.ContainsKey(SystemTypes.Electrical))
+            return;
         SwitchSystem switchSystem = MapUtilities.Systems[SystemTypes.Electrical].TryCast<SwitchSystem>();
         switchSystem.ActualSwitches = switchSystem.ExpectedSwitches;
     }
@@ -847,7 +1021,7 @@ public static class RPCProcedure
         PlayerControl TargetPlayer = ModHelpers.PlayerById(target);
         PlayerControl SourcePlayer = ModHelpers.PlayerById(source);
         if (TargetPlayer == null || SourcePlayer == null) return;
-        if (!RoleClass.Arsonist.DouseData.ContainsKey(source)) RoleClass.Arsonist.DouseData[source] = new();
+        if (!RoleClass.Arsonist.DouseData.Contains(source)) RoleClass.Arsonist.DouseData[source] = new();
         if (!Arsonist.IsDoused(SourcePlayer, TargetPlayer))
         {
             RoleClass.Arsonist.DouseData[source].Add(TargetPlayer);
@@ -858,7 +1032,7 @@ public static class RPCProcedure
         PlayerControl TargetPlayer = ModHelpers.PlayerById(target);
         PlayerControl SourcePlayer = ModHelpers.PlayerById(source);
         if (TargetPlayer == null || SourcePlayer == null) return;
-        if (!RoleClass.Demon.CurseData.ContainsKey(source)) RoleClass.Demon.CurseData[source] = new();
+        if (!RoleClass.Demon.CurseData.Contains(source)) RoleClass.Demon.CurseData[source] = new();
         if (!Demon.IsCursed(SourcePlayer, TargetPlayer))
         {
             RoleClass.Demon.CurseData[source].Add(TargetPlayer);
@@ -1037,6 +1211,33 @@ public static class RPCProcedure
         }
         player.SetRole(roleId);
     }
+    public static void SwapRole(byte playerid1, byte playerid2)
+    {
+        var player1 = ModHelpers.PlayerById(playerid1);
+        var player2 = ModHelpers.PlayerById(playerid2);
+        RoleBase player1role = player1.GetRoleBase();
+        RoleBase player2role = player2.GetRoleBase();
+        RoleId player1id = player1.GetRole();
+        RoleId player2id = player2.GetRole();
+        if (player1role != null)
+            player1role.SetPlayer(player2);
+        if (player2role != null)
+            player2role.SetPlayer(player1);
+        if (player1role == null)
+        {
+            player2.ClearRole();
+            player2.SetRole(player1id);
+        }
+        if (player2role == null)
+        {
+            player1.ClearRole();
+            player1.SetRole(player2id);
+        }
+        ChacheManager.ResetMyRoleChache();
+    }
+
+    public static void SetHauntedWolf(byte playerid)
+        => HauntedWolf.Assign.SetHauntedWolf(ModHelpers.PlayerById(playerid));
 
     public static void SetQuarreled(byte playerid1, byte playerid2)
         => RoleHelpers.SetQuarreled(ModHelpers.PlayerById(playerid1), ModHelpers.PlayerById(playerid2));
@@ -1049,40 +1250,36 @@ public static class RPCProcedure
     /// </summary>
     /// <param name="SheriffId">SheriffのPlayerId</param>
     /// <param name="TargetId">Sheriffのターゲットにされた人のPlayerId</param>
-    /// <param name="MissFire">誤爆したか</param>
-    /// <param name="alwaysKill">誤爆していて尚且つ誤爆時も対象を殺す設定が有効か</param>
-    public static void SheriffKill(byte SheriffId, byte TargetId, bool MissFire, bool alwaysKill)
+    /// <param name="isTargetKill">対象をキル可能か</param>
+    /// <param name="isSuicide">シェリフは自殺するか(誤爆 & 自殺)</param>
+    public static void SheriffKill(byte SheriffId, byte TargetId, bool isTargetKill, bool isSuicide)
     {
         PlayerControl sheriff = ModHelpers.PlayerById(SheriffId);
         PlayerControl target = ModHelpers.PlayerById(TargetId);
         if (sheriff == null || target == null) return;
 
-        if (alwaysKill)
-        {
-            sheriff.MurderPlayer(target);
-            sheriff.MurderPlayer(sheriff);
-        }
-        else if (MissFire)
-        {
-            sheriff.MurderPlayer(sheriff);
-        }
-        else
+        if (isTargetKill)
         {
             if (sheriff.IsRole(RoleId.RemoteSheriff) && !RoleClass.RemoteSheriff.IsKillTeleport)
             {
                 if (CachedPlayer.LocalPlayer.PlayerId == SheriffId)
                 {
-                    target.MurderPlayer(target);
+                    target.MurderPlayer(target, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
                 }
                 else
                 {
-                    sheriff.MurderPlayer(target);
+                    sheriff.MurderPlayer(target, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
                 }
             }
             else
             {
-                sheriff.MurderPlayer(target);
+                sheriff.MurderPlayer(target, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
             }
+        }
+
+        if (isSuicide)
+        {
+            sheriff.MurderPlayer(sheriff, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         }
     }
 
@@ -1183,13 +1380,13 @@ public static class RPCProcedure
         if (notTargetId == targetId)
         {
             PlayerControl Player = ModHelpers.PlayerById(targetId);
-            Player.MurderPlayer(Player);
+            Player.MurderPlayer(Player, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         }
         else
         {
             PlayerControl notTargetPlayer = ModHelpers.PlayerById(notTargetId);
             PlayerControl TargetPlayer = ModHelpers.PlayerById(targetId);
-            notTargetPlayer.MurderPlayer(TargetPlayer);
+            notTargetPlayer.MurderPlayer(TargetPlayer, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         }
     }
     public static void RPCClergymanLightOut(bool Start)
@@ -1376,7 +1573,7 @@ public static class RPCProcedure
         if (source != null && target != null)
         {
             if (showAnimation == 0) KillAnimationCoPerformKillPatch.hideNextAnimation = true;
-            source.MurderPlayer(target);
+            source.MurderPlayer(target, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         }
     }
     public static void ShareWinner(byte playerid)
@@ -1412,18 +1609,19 @@ public static class RPCProcedure
         PlayerControl target = ModHelpers.PlayerById(targetId);
         if (target == null || source == null) return;
         source.ProtectPlayer(target, colorid);
-        source.MurderPlayer(target);
+        source.MurderPlayer(target, MurderResultFlags.Succeeded | MurderResultFlags.DecisionByHost);
         source.ProtectPlayer(target, colorid);
         if (targetId == CachedPlayer.LocalPlayer.PlayerId) Buttons.HudManagerStartPatch.ShielderButton.Timer = 0f;
     }
     public static void SetShielder(byte PlayerId, bool Is)
         => RoleClass.Shielder.IsShield[PlayerId] = RoleClass.Shielder.IsShield[PlayerId] = Is;
 
-    public static void MakeVent(byte id, float x, float y, float z, bool chain)
+    public static Vent MakeVent(byte id, float x, float y, float z, bool chain)
     {
+        ReplayActionMakeVent.Create(id, x, y, z, chain);
         Vent template = UnityEngine.Object.FindObjectOfType<Vent>();
         Vent VentMakerVent = UnityEngine.Object.Instantiate(template);
-        if (chain && RoleClass.VentMaker.Vent.ContainsKey(id))
+        if (chain && RoleClass.VentMaker.Vent.Contains(id))
         {
             RoleClass.VentMaker.Vent[id].Right = VentMakerVent;
             VentMakerVent.Right = RoleClass.VentMaker.Vent[id];
@@ -1446,6 +1644,7 @@ public static class RPCProcedure
         VentMakerVent.name = "VentMakerVent" + VentMakerVent.Id;
         VentMakerVent.gameObject.SetActive(true);
         RoleClass.VentMaker.Vent[id] = VentMakerVent;
+        return VentMakerVent;
     }
     public static void PositionSwapperTP(byte SwapPlayerID, byte SwapperID)
     {
@@ -1484,60 +1683,28 @@ public static class RPCProcedure
         source.transform.localPosition = target.transform.localPosition;
     }
 
-    public static void RandomSpawn(byte playerId, byte locId)
-    {
-        HudManager.Instance.StartCoroutine(Effects.Lerp(3f, new Action<float>((p) =>
-        { // Delayed action
-            if (p == 1f)
-            {
-                //ShipStatus.Instance.InitialSpawnCenter = new(16.64f, -2.46f);
-                Vector2 MeetingSpawnCenter = new(17.4f, -16.286f);
-                Vector2 ElectricalSpawn = new(5.53f, -9.84f);
-                Vector2 O2Spawn = new(3.28f, -21.67f);
-                Vector2 SpecimenSpawn = new(36.54f, -20.84f);
-                Vector2 LaboSpawn = new(34.91f, -6.50f);
-                Vector2 CommsSpawn = new(12.24f, -15.9473f);
-                Vector2 StorageSpawn = new(20.9707f, -12.3396f);
-                Vector2 MeetingSpawnUnder = new(22.0948f, -25.1668f);
-                Vector2 LocketSpawn = new(26.6442f, -6.775f);
-                Vector2 LeftReactorSpawn = new(4.6395f, -4.2884f);
-                var loc = locId switch
-                {
-                    0 => ShipStatus.Instance.InitialSpawnCenter,
-                    1 => MeetingSpawnCenter,
-                    2 => ElectricalSpawn,
-                    3 => O2Spawn,
-                    4 => SpecimenSpawn,
-                    5 => LaboSpawn,
-                    6 => CommsSpawn,
-                    7 => StorageSpawn,
-                    8 => MeetingSpawnUnder,
-                    9 => LocketSpawn,
-                    10 => LeftReactorSpawn,
-                    _ => ShipStatus.Instance.InitialSpawnCenter,
-                };
-                foreach (PlayerControl player in PlayerControl.AllPlayerControls)
-                {
-                    if (player.Data.PlayerId == playerId)
-                    {
-                        player.transform.position = loc;
-                        break;
-                    }
-                }
-            }
-        })));
-    }
-
     public static void ShowFlash()
     {
-        Seer.ShowFlash(new Color(42f / 255f, 187f / 255f, 245f / 255f));
+        SeerHandler.ShowFlash(new Color(42f / 255f, 187f / 255f, 245f / 255f));
     }
 
     public static void PenguinMeetingEnd()
     {
-        RoleClass.Penguin.PenguinData.Clear();
+        RoleClass.Penguin.PenguinData.Reset();
         if (PlayerControl.LocalPlayer.GetRole() == RoleId.Penguin)
             HudManagerStartPatch.PenguinButton.actionButton.cooldownTimerText.color = Palette.EnabledColor;
+    }
+
+    public static void JumpDancerJump(MessageReader reader)
+    {
+        PlayerControl source = ModHelpers.PlayerById(reader.ReadByte());
+        int count = reader.ReadInt32();
+        List<PlayerControl> players = new();
+        for (int i = 0; i < count; i++)
+        {
+            players.Add(ModHelpers.PlayerById(reader.ReadByte()));
+        }
+        JumpDancer.SetJump(source, players);
     }
 
     public static void SetLoversBreakerWinner(byte playerid) => RoleClass.LoversBreaker.CanEndGamePlayers.Add(playerid);
@@ -1572,12 +1739,13 @@ public static class RPCProcedure
             {CustomRPC.ShareSNRVersion,false},
             {CustomRPC.SetRoomTimerRPC,false},
             {CustomRPC.SetDeviceTime,false},
+            {CustomRPC.SetInfectionTimer,false},
         };
 
         static void Postfix(PlayerControl __instance, [HarmonyArgument(0)] byte callId, [HarmonyArgument(1)] MessageReader reader)
         {
             if (!IsWritingRPCLog.ContainsKey((CustomRPC)callId))
-                Logger.Info(ModHelpers.GetRPCNameFromByte(callId), "RPC");
+                Logger.Info(ModHelpers.GetRPCNameFromByte(__instance, callId), "RPC");
             try
             {
                 byte packetId = callId;
@@ -1607,6 +1775,9 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.SetRole:
                         SetRole(reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.SwapRole:
+                        SwapRole(reader.ReadByte(), reader.ReadByte());
                         break;
                     case CustomRPC.SheriffKill:
                         SheriffKill(reader.ReadByte(), reader.ReadByte(), reader.ReadBoolean(), reader.ReadBoolean());
@@ -1643,6 +1814,9 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.TeleporterTP:
                         TeleporterTP(reader.ReadByte());
+                        break;
+                    case CustomRPC.SetHauntedWolf:
+                        SetHauntedWolf(reader.ReadByte());
                         break;
                     case CustomRPC.SetQuarreled:
                         SetQuarreled(reader.ReadByte(), reader.ReadByte());
@@ -1750,9 +1924,6 @@ public static class RPCProcedure
                     case CustomRPC.FixLights:
                         FixLights();
                         break;
-                    case CustomRPC.RandomSpawn:
-                        RandomSpawn(reader.ReadByte(), reader.ReadByte());
-                        break;
                     case CustomRPC.KunaiKill:
                         KunaiKill(reader.ReadByte(), reader.ReadByte());
                         break;
@@ -1763,7 +1934,7 @@ public static class RPCProcedure
                         ChiefSidekick(reader.ReadByte(), reader.ReadBoolean());
                         break;
                     case CustomRPC.RpcSetDoorway:
-                        RPCHelper.RpcSetDoorway(reader.ReadByte(), reader.ReadBoolean());
+                        RPCHelper.SetDoorway(reader.ReadByte(), reader.ReadBoolean());
                         break;
                     case CustomRPC.StartRevolutionMeeting:
                         StartRevolutionMeeting(reader.ReadByte());
@@ -1795,16 +1966,6 @@ public static class RPCProcedure
                     case CustomRPC.PlayPlayerAnimation:
                         PlayPlayerAnimation(reader.ReadByte(), reader.ReadByte());
                         break;
-                    case CustomRPC.SluggerExile:
-                        source = reader.ReadByte();
-                        byte count = reader.ReadByte();
-                        List<byte> Targets = new();
-                        for (int i = 0; i < count; i++)
-                        {
-                            Targets.Add(reader.ReadByte());
-                        }
-                        SluggerExile(source, Targets);
-                        break;
                     case CustomRPC.MeetingKill:
                         MeetingKill(reader.ReadByte(), reader.ReadByte());
                         break;
@@ -1816,9 +1977,6 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.CrackerCrack:
                         CrackerCrack(reader.ReadByte());
-                        break;
-                    case CustomRPC.WaveCannon:
-                        WaveCannon(reader.ReadByte(), reader.ReadByte(), reader.ReadBoolean(), reader.ReadByte(), reader.ReadBytesAndSize());
                         break;
                     case CustomRPC.ShowFlash:
                         ShowFlash();
@@ -1837,9 +1995,6 @@ public static class RPCProcedure
                         break;
                     case CustomRPC.ShowGuardEffect:
                         ShowGuardEffect(reader.ReadByte(), reader.ReadByte());
-                        break;
-                    case CustomRPC.SetLoversCupid:
-                        SetLoversCupid(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
                         break;
                     case CustomRPC.PenguinHikizuri:
                         PenguinHikizuri(reader.ReadByte(), reader.ReadByte());
@@ -1901,6 +2056,68 @@ public static class RPCProcedure
                     case CustomRPC.PteranodonSetStatus:
                         PteranodonSetStatus(reader.ReadByte(), reader.ReadBoolean(), reader.ReadBoolean(), reader.ReadSingle(), reader.ReadBytes(reader.ReadInt32()));
                         break;
+                    case CustomRPC.SetInfectionTimer:
+                        byte id = reader.ReadByte();
+                        int num = reader.ReadInt32();
+                        Dictionary<byte, float> timer = new();
+                        for (int i = 0; i < num; i++) timer[reader.ReadByte()] = reader.ReadSingle();
+                        SetInfectionTimer(id, timer);
+                        break;
+                    case CustomRPC.SendMeetingTurnNow:
+                        ReportDeadBodyPatch.SaveMeetingTurnNow(reader.ReadByte());
+                        break;
+                    case CustomRPC.PoliceSurgeonSendActualDeathTimeManager:
+                        PostMortemCertificate_AddActualDeathTime.RPCImportActualDeathTimeManager(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.MoiraChangeRole:
+                        MoiraChangeRole(reader.ReadByte(), reader.ReadByte(), reader.ReadBoolean());
+                        break;
+                    case CustomRPC.JumpDancerJump:
+                        JumpDancerJump(reader);
+                        break;
+                    case CustomRPC.BatSetDeviceStop:
+                        Roles.Impostor.Bat.BatSetDeviceStop();
+                        break;
+                    case CustomRPC.RocketSeize:
+                        RocketSeize(reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.RocketLetsRocket:
+                        RocketLetsRocket(reader.ReadByte());
+                        break;
+                    case CustomRPC.CreateGarbage:
+                        CreateGarbage(reader.ReadSingle(), reader.ReadSingle());
+                        break;
+                    case CustomRPC.DestroyGarbage:
+                        DestroyGarbage(reader.ReadString());
+                        break;
+                    case CustomRPC.SetPokerfaceTeam:
+                        SetPokerfaceTeam(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.SetSpiderTrap:
+                        SetSpiderTrap(reader.ReadByte(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadUInt16());
+                        break;
+                    case CustomRPC.CheckSpiderTrapCatch:
+                        CheckSpiderTrapCatch(reader.ReadUInt16(), reader.ReadByte());
+                        break;
+                    case CustomRPC.SpiderTrapCatch:
+                        SpiderTrapCatch(reader.ReadUInt16(), reader.ReadByte());
+                        break;
+                    case CustomRPC.CrookSaveSignDictionary:
+                        Crook.Ability.SaveSignDictionary(reader.ReadByte(), reader.ReadByte());
+                        break;
+                    case CustomRPC.RoleRpcHandler:
+                        RoleRpcHandler(reader);
+                        break;
+                    case CustomRPC.SetFrankensteinMonster:
+                        SetFrankensteinMonster(reader.ReadByte(), reader.ReadByte(), reader.ReadBoolean());
+                        break;
+                    case CustomRPC.MoveDeadBody:
+                        MoveDeadBody(reader.ReadByte(), reader.ReadSingle(), reader.ReadSingle());
+                        break;
+                    case CustomRPC.WaveCannon:
+                        WaveCannon(reader.ReadByte(), reader.ReadByte(), reader.ReadBoolean(), reader.ReadByte(), new(reader.ReadSingle(), reader.ReadSingle()), (WaveCannonObject.WCAnimType)reader.ReadByte());
+                        break;
+
 
                     case CustomRPC.陰キャ転生_つかまれる:
                         var inkyaPlayerId = reader.ReadByte();

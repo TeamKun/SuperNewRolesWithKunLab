@@ -69,6 +69,12 @@ public class CustomVisorData : VisorData
                     __instance.Image.maskInteraction = (SpriteMaskInteraction)0;
                     break;
             }
+            if (__instance.matProperties.MaskLayer <= 0)
+            {
+                PlayerMaterial.SetMaskLayerBasedOnLocalPlayer(__instance.Image, __instance.matProperties.IsLocalPlayer);
+                return false;
+            }
+            __instance.Image.material.SetInt(PlayerMaterial.MaskLayer, __instance.matProperties.MaskLayer);
             return false;
         }
     }
@@ -111,7 +117,7 @@ public class CustomVisorData : VisorData
             return false;
         }
     }
-    [HarmonyPatch(typeof(VisorLayer), nameof(VisorLayer.SetVisor), new Type[] { typeof(VisorData), typeof(int)})]
+    [HarmonyPatch(typeof(VisorLayer), nameof(VisorLayer.SetVisor), new Type[] { typeof(VisorData), typeof(int) })]
     class VisorLayerSetVisorPatch
     {
         public static bool Prefix(VisorLayer __instance, VisorData data, int colorId)

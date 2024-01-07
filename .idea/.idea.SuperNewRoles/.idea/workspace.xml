@@ -10,16 +10,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ccd84d48-781b-4fef-969d-1bc094853706" name="変更" comment="">
-      <change beforePath="$PROJECT_DIR$/SuperNewRoles/Buttons/Buttons.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SuperNewRoles/Buttons/Buttons.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SuperNewRoles/KunLab/InkyaTenseiManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SuperNewRoles/KunLab/InkyaTenseiManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SuperNewRoles/ModHelpers.cs" beforeDir="false" afterPath="$PROJECT_DIR$/SuperNewRoles/ModHelpers.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.SuperNewRoles/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.SuperNewRoles/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="5" />
     <option name="recentBranches">
       <RecentBranches>
         <option name="branchesForRepo">
@@ -51,6 +53,8 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/dc84224336674947b800743808c2ecec1327e00/bf/7d2ba45f/BepInAutoPluginAttribute.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f435914f466f417b8ed764b051fa08fd5d1a00/57/7b0ac967/PlayerControl.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/metadata/1e6b5c901d154c199c671e33256790b95000/4d/3dac625b/BepInEx.AutoPlugin.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://G:/RiderProjects/SuperNewRolesWithKunLab/SuperNewRoles/Buttons/Buttons.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://G:/RiderProjects/SuperNewRolesWithKunLab/SuperNewRoles/Buttons/Buttons.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SuperNewRoles/CustomCosmetics/CustomCosmeticsData/CustomAddressableAsset.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SuperNewRoles/CustomCosmetics/CustomCosmeticsData/CustomHatData.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/SuperNewRoles/CustomCosmetics/CustomCosmeticsData/CustomPlateData.cs" root0="FORCE_HIGHLIGHTING" />
@@ -79,6 +83,7 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -180,6 +185,8 @@
       <workItem from="1689987866443" duration="5181000" />
       <workItem from="1690001941971" duration="252000" />
       <workItem from="1690002497121" duration="3023000" />
+      <workItem from="1704598884998" duration="827000" />
+      <workItem from="1704642597418" duration="959000" />
     </task>
     <servers />
   </component>

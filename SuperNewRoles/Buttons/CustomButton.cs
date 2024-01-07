@@ -121,23 +121,22 @@ public class CustomButton
     public static void MeetingEndedUpdate()
     {
         buttons.RemoveAll(item => item.actionButton == null);
-        bool isAlive = PlayerControl.LocalPlayer.IsAlive();
-        RoleId role = PlayerControl.LocalPlayer.GetRole();
+        PlayerControl player = PlayerControl.LocalPlayer;
+        bool isAlive = player.IsAlive();
+        RoleId role = player.GetRole();
         foreach (CustomButton btn in buttons)
         {
             try
             {
-                if (btn.HasButton(isAlive, role))
-                {
-                    btn.OnMeetingEnds();
-                    btn.Update(isAlive, role);
-                }
+                btn.OnMeetingEnds();
+                if (btn.HasButton(isAlive, role)) btn.Update(isAlive, role);
             }
             catch (Exception e)
             {
                 if (ConfigRoles.DebugMode.Value) System.Console.WriteLine("MeetingEnd_ButtonError:" + e);
             }
         }
+        if (player.CurrentOutfitType == PlayerOutfitType.Shapeshifted) player.RpcShapeshift(player, false);
     }
 
     public void SetActive(bool isActive)

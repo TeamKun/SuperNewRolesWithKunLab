@@ -1,27 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using SuperNewRoles.Mode;
-using SuperNewRoles.Mode.BattleRoyal;
 using UnityEngine;
-using static PlayerControl;
 using static SuperNewRoles.MapCustoms.MapCustomHandler;
 
 namespace SuperNewRoles.MapCustoms;
 
 public class MapCustomHandler
 {
-    // TODO:デフォルトである(≒SHRでない)判定が正常にできていない為修正必要
-    public static bool IsMapCustom(MapCustomId mapCustomId)
+
+    public static bool IsMapCustom(MapCustomId mapCustomId, bool isDefaultOnly=true)
     {
+        bool isCommonDecision = MapCustom.MapCustomOption.GetBool() && (ModeHandler.IsMode(ModeId.Default) || !isDefaultOnly);
+        if (!isCommonDecision) return false; // 共通条件を満たしていなかったら, 早期リターン
+
+        byte isMapId = GameManager.Instance.LogicOptions.currentGameOptions.GetByte(ByteOptionNames.MapId);
         return mapCustomId switch
         {
-            MapCustomId.Skeld => GameManager.Instance.LogicOptions.currentGameOptions.GetByte(ByteOptionNames.MapId) == 0 && MapCustom.MapCustomOption.GetBool() && MapCustom.SkeldSetting.GetBool() && ModeHandler.IsMode(ModeId.Default),
-            MapCustomId.Mira => GameManager.Instance.LogicOptions.currentGameOptions.GetByte(ByteOptionNames.MapId) == 1 && MapCustom.MapCustomOption.GetBool() && MapCustom.MiraSetting.GetBool() && ModeHandler.IsMode(ModeId.Default),
-            MapCustomId.Polus => GameManager.Instance.LogicOptions.currentGameOptions.GetByte(ByteOptionNames.MapId) == 2 && MapCustom.MapCustomOption.GetBool() && MapCustom.PolusSetting.GetBool() && ModeHandler.IsMode(ModeId.Default),
-            MapCustomId.Airship => GameManager.Instance.LogicOptions.currentGameOptions.GetByte(ByteOptionNames.MapId) == 4 && MapCustom.MapCustomOption.GetBool() && MapCustom.AirshipSetting.GetBool() && ModeHandler.IsMode(ModeId.Default),
+            MapCustomId.Skeld => isMapId == 0 && MapCustom.SkeldSetting.GetBool(),
+            MapCustomId.Mira => isMapId == 1 && MapCustom.MiraSetting.GetBool(),
+            MapCustomId.Polus => isMapId == 2 && MapCustom.PolusSetting.GetBool(),
+            MapCustomId.Airship => isMapId == 4 && MapCustom.AirshipSetting.GetBool(),
+            MapCustomId.TheFungle => isMapId == 5 && MapCustom.TheFungleSetting.GetBool(),
             _ => false,
         };
     }
@@ -31,6 +35,7 @@ public class MapCustomHandler
         Mira,
         Polus,
         Airship,
+        TheFungle,
     }
 }
 [HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.Start))]
@@ -67,14 +72,60 @@ class IntroCutsceneOnDestroyPatch
         //配電盤を移動させる
         MoveElecPad.MoveElecPads();
 
-        if (__instance.FastRooms.ContainsKey(SystemTypes.GapRoom))
+        //ファングルにアドミンを追加！
+        FungleAdditionalAdmin.AddAdmin();
+
+        FungleShipStatus fungleShipStatus;        
+        if (MapCustomHandler.IsMapCustom(MapCustomHandler.MapCustomId.Airship) && __instance.FastRooms.ContainsKey(SystemTypes.GapRoom))
         {
             GameObject gapRoom = __instance.AllRooms.ToList().Find(n => n.RoomId == SystemTypes.GapRoom).gameObject;
             // ぬ～んを消す
-            if (MapCustomHandler.IsMapCustom(MapCustomHandler.MapCustomId.Airship) && MapCustom.AirshipDisableMovingPlatform.GetBool())
+            if (MapCustom.AirshipDisableMovingPlatform.GetBool())
             {
                 gapRoom.GetComponentInChildren<MovingPlatformBehaviour>().gameObject.SetActive(false);
                 gapRoom.GetComponentsInChildren<PlatformConsole>().ForEach(x => x.gameObject.SetActive(false));
+            }
+            // 昇降機右のダウンロードを下に移動
+            if (MapCustom.MoveGapRoomDownload.GetBool())
+            {
+                var downloadConsole = __instance.AllConsoles.FirstOrDefault(console => console.Room == SystemTypes.GapRoom && console.ValidTasks.Any(taskSet => taskSet.taskType == TaskTypes.UploadData));
+                if (downloadConsole != null)
+                {
+                    var localPosition = downloadConsole.transform.localPosition;
+                    localPosition.x = 3.6f;
+                    localPosition.y = -3.9f;
+                    downloadConsole.transform.localPosition = localPosition;
+                }
+            }
+        }
+        //ジップラインの設定
+        else if (IsMapCustom(MapCustomId.TheFungle, false))
+        {
+            fungleShipStatus = __instance.CastFast<FungleShipStatus>();
+            if (IsMapCustom(MapCustomId.TheFungle, true))
+            {
+                if (MapCustom.TheFungleZiplineOption.GetBool())
+                {
+                    fungleShipStatus.Zipline.upTravelTime = MapCustom.TheFungleZiplineUpTime.GetFloat();
+                    fungleShipStatus.Zipline.downTravelTime = MapCustom.TheFungleZiplineDownTime.GetFloat();
+                }
+                if (MapCustom.TheFungleCameraOption.GetBool())
+                {
+                    Transform SecurityBoundary = fungleShipStatus.transform.FindChild("SecurityBoundary");
+                    float size = MapCustom.TheFungleCameraChangeRange.GetFloat();
+                    EdgeCollider2D SecurityBoundaryCollider = SecurityBoundary.GetComponent<EdgeCollider2D>();
+                    Vector2[] array = new Vector2[] { new(-size, -size), new(-size, size), new(size, size), new(size, -size), new(-size, -size) };
+                    SecurityBoundaryCollider.points = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<Vector2>(array);
+                    SecurityBoundaryCollider.offset = new(-10f, 2.5f);
+                }
+                if (MapCustom.TheFunglePowerOutageSabotage.GetBool())
+                {
+                    FungleAdditionalElectrical.CreateElectrical();
+                }
+            }
+            if (MapCustom.TheFungleMushroomMixupOption.GetBool())
+            {
+                fungleShipStatus.specialSabotage.secondsForAutoHeal = MapCustom.TheFungleMushroomMixupTime.GetFloat();
             }
         }
     }
