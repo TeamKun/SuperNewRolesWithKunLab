@@ -8,7 +8,7 @@
 
 # 開発者向けドキュメント
 
-# [環境構築方法](https://github.com/TeamKun/SuperNewRolesWithKunLab/blob/master/docs/%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89.md)
+## [環境構築方法](https://github.com/TeamKun/SuperNewRolesWithKunLab/blob/master/docs/%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89.md)
 
 これは[SuperNewRoles](https://github.com/ykundesu/SuperNewRoles)のフォークです。
 元のリポジトリとは完全に分離して開発を行う都合上、Githubのフォークを使わずにフォークを行いました。
